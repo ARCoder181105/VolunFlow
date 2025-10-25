@@ -4,6 +4,8 @@ import helmet from 'helmet'
 import cors from 'cors'
 import morgan from 'morgan';
 
+import uploadRoutes from './rest/upload.routes.js'
+
 const app = express();
 
 const url = process.env.FRONTEND_URL;
@@ -18,6 +20,8 @@ app.use(helmet())
 app.use(express.json())
 app.use(morgan('dev'))
 
+//cloudinary
+app.use('/api/v1/upload', uploadRoutes); 
 
 // --- Health Check Route ---
 // A simple route to verify the server is running
