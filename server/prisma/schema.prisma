@@ -1,0 +1,175 @@
+// This is your Prisma schema file for the VolunFlow application.
+// It defines the database models, relations, and data constraints.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Core Models
+// -----------------------------------------------------------------------------
+
+model User {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  email        String       @unique
+  name         String
+  password     String? // Optional: for users who sign up via OAuth providers
+  avatarUrl    String?
+  role         UserRole     @default(VOLUNTEER)
+  authProvider AuthProvider @default(EMAIL)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // A user can be an admin of ONE NGO
+  adminOfNgoId String? @db.ObjectId
+  adminOfNgo   NGO?    @relation("NGOAdmins", fields: [adminOfNgoId], references: [id])
+
+  // A user can sign up for MANY events
+  signups      Signup[]
+
+  // A user can earn MANY badges
+  earnedBadges EarnedBadge[]
+
+  @@map("users")
+}
+
+model NGO {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String   @unique
+  slug         String   @unique // For clean URLs like volunflow.com/ngo/community-helpers
+  description  String
+  logoUrl      String?
+  website      String?
+  contactEmail String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // An NGO can have MANY admins
+  admins   User[]   @relation("NGOAdmins")
+  // An NGO can host MANY events
+  events   Event[]
+  // An NGO can have MANY physical branches
+  branches Branch[]
+  // An NGO creates its OWN badge templates
+  badges   Badge[]
+
+  @@map("ngos")
+}
+
+model Event {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  tags          String[] // For filtering and search (e.g., ["environment", "community", "outdoors"])
+  date          DateTime
+  location      String
+  imageUrl      String?
+  maxVolunteers Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // An event is hosted by ONE NGO
+  ngoId String @db.ObjectId
+  ngo   NGO    @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+
+  // An event has MANY signups from volunteers
+  signups Signup[]
+
+  @@map("events")
+}
+
+// A physical location/branch of an NGO
+model Branch {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  address   String
+  city      String
+  latitude  Float
+  longitude Float
+
+  // A branch belongs to ONE NGO
+  ngoId String @db.ObjectId
+  ngo   NGO    @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+
+  @@map("branches")
+}
+
+
+// Join Models (for Many-to-Many Relationships)
+
+
+// Represents a User's registration for an Event
+model Signup {
+  id        String       @id @default(auto()) @map("_id") @db.ObjectId
+  status    SignupStatus @default(CONFIRMED)
+  createdAt DateTime     @default(now())
+
+  // Connects ONE user to ONE event
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventId String @db.ObjectId
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // A user can only sign up for a specific event once
+  @@unique([userId, eventId])
+  @@map("signups")
+}
+
+// A template for a badge that an NGO can award
+model Badge {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  imageUrl    String
+  criteria    String // e.g., "Awarded for attending 5 cleanup events"
+
+  // A badge template is created by ONE NGO
+  ngoId String @db.ObjectId
+  ngo   NGO    @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+
+  // This badge can be awarded to MANY users
+  awardedTo EarnedBadge[]
+
+  @@map("badges")
+}
+
+// A record of a specific user earning a specific badge
+model EarnedBadge {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  awardedAt DateTime @default(now())
+
+  // Connects ONE user to ONE badge
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  badgeId String @db.ObjectId
+  badge   Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("earned_badges")
+}
+
+//Enum for consistency
+
+enum UserRole {
+  VOLUNTEER
+  NGO_ADMIN
+  SUPER_ADMIN // For platform-level administration
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  FACEBOOK
+}
+
+enum SignupStatus {
+  CONFIRMED // User is signed up
+  ATTENDED  // NGO admin marked them as having attended
+  CANCELLED // User cancelled their registration
+}
