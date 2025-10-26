@@ -1,7 +1,5 @@
 // --- Passport OAuth Strategies Configuration ---
 // This file handles Google/Facebook authentication only.
-// NOTE: We DO NOT generate or store tokens here. Tokens will be generated in auth.routes.ts after login.
-
 import passport from 'passport';
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy, Profile as FacebookProfile } from 'passport-facebook';
