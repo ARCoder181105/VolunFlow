@@ -20,7 +20,6 @@ const findOrCreateUser = async (
   let user = await prisma.user.findUnique({ where: { email } });
 
   if (user) {
-    // If user existed but provider changed (ex: registered by email but now used google)
     if (user.authProvider !== provider) {
       user = await prisma.user.update({
         where: { email },
@@ -30,10 +29,9 @@ const findOrCreateUser = async (
         },
       });
     }
-    return user; // ✅ Always return user WITHOUT refresh token from OAuth provider
+    return user; 
   }
 
-  // --- Create new user if doesn't exist ---
   return await prisma.user.create({
     data: {
       email,
@@ -54,7 +52,6 @@ passport.use(
     },
     async (_accessToken, _refreshToken, profile, done) => {
       try {
-        // ✅ Do NOT store Google refresh token. Only use our own tokens later.
         const user = await findOrCreateUser(profile, 'GOOGLE');
         return done(null, user);
       } catch (error) {
