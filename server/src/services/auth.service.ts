@@ -1,7 +1,7 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { User } from '@prisma/client';
-import prisma from './prisma.service.js';
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import { User } from "@prisma/client";
+import prisma from "./prisma.service.js";
 
 // Load secrets and expiries from environment variables
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
@@ -14,14 +14,22 @@ export const hashPassword = async (password: string): Promise<string> => {
   return bcrypt.hash(password, salt);
 };
 
-export const comparePassword = (password: string, hash: string): Promise<boolean> => {
+export const comparePassword = (
+  password: string,
+  hash: string
+): Promise<boolean> => {
   return bcrypt.compare(password, hash);
 };
 
 export const generateAndStoreTokens = async (user: User) => {
   // Sign the access token with its own secret and expiry
   const accessToken = jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      adminOfNgoId: user.adminOfNgoId,
+    },
     ACCESS_TOKEN_SECRET,
     { expiresIn: ACCESS_TOKEN_EXPIRY }
   );

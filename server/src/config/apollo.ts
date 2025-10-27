@@ -3,7 +3,6 @@ import { expressMiddleware } from "@as-integrations/express5";
 import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
 import merge from "lodash.merge";
 import jwt from "jsonwebtoken";
-import prisma from "../services/prisma.service.js";
 
 // Import all your schemas and resolvers
 import { typeDefs } from "../graphql/index.js";
@@ -52,9 +51,7 @@ export const createApolloGraphQLMiddleware = async () => {
             return {};
           }
 
-          const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-
-          return { user: dbUser };
+          return { user };
         } catch (error) {
           // Token is invalid or expired
           return {};
