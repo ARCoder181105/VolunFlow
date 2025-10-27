@@ -1,0 +1,27 @@
+type NGO {
+  id: ID!
+  name: String!
+  slug: String!
+  description: String!
+  logoUrl: String
+  website: String
+  contactEmail: String!
+}
+
+# Input type for creating a new NGO
+input CreateNgoInput {
+  name: String!
+  description: String!
+  contactEmail: String!
+}
+
+# Extend the main Query and Mutation types
+extend type Query {
+  "Fetches the public profile for a single NGO by its unique slug."
+  getNgoBySlug(slug: String!): NGO
+}
+
+extend type Mutation {
+  "Creates a new NGO and makes the logged-in user its admin."
+  createNgo(input: CreateNgoInput!): NGO!
+}

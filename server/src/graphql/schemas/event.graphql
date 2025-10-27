@@ -1,0 +1,32 @@
+type Event {
+  id: ID!
+  title: String!
+  description: String!
+  date: String!
+  location: String!
+}
+
+# Input type for creating a new event
+input CreateEventInput {
+  title: String!
+  description: String!
+  date: String! # ISO 8601 date string e.g., "2025-12-25T10:00:00.000Z"
+  location: String!
+}
+
+# Extend the main Query and Mutation types
+extend type Query {
+  "Fetches all events hosted by a specific NGO."
+  getNgoEvents(ngoId: ID!): [Event]!
+
+  "Fetches all upcoming events from ALL NGOs for discovery."
+  getAllEvents: [Event]!
+
+  "Fetches the list of volunteers who have signed up for a specific event."
+  getEventAttendees(eventId: ID!): [User]! 
+}
+
+extend type Mutation {
+  "Creates a new event for the admin's NGO."
+  createEvent(input: CreateEventInput!): Event!
+}

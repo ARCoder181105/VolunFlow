@@ -1,0 +1,13 @@
+"Represents the link between a User and an Event they signed up for."
+type Signup {
+  id: ID!
+  status: String!
+  event: Event!
+  user: User!
+}
+
+# Extend the main Mutation type
+extend type Mutation {
+  "Signs up the current logged-in user for a specific event."
+  signupForEvent(eventId: ID!): Signup!
+}

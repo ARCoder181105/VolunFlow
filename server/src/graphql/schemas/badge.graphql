@@ -1,0 +1,31 @@
+"A template for a badge created by an NGO."
+type Badge {
+  id: ID!
+  name: String!
+  description: String!
+  imageUrl: String!
+}
+
+"A record of a user earning a specific badge."
+type EarnedBadge {
+  id: ID!
+  awardedAt: String!
+  badge: Badge!
+  user: User!
+}
+
+# Input for creating a new badge template
+input CreateBadgeInput {
+  name: String!
+  description: String!
+  imageUrl: String! # This URL will come from our /upload endpoint
+}
+
+# Extend the main Mutation type
+extend type Mutation {
+  "Creates a new badge template for the admin's NGO."
+  createBadgeTemplate(input: CreateBadgeInput!): Badge!
+
+  "Awards a badge to a specific user."
+  awardBadge(userId: ID!, badgeId: ID!): EarnedBadge!
+}

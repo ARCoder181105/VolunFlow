@@ -1,0 +1,12 @@
+# This root file will eventually combine all other schemas.
+# For now, it just includes the User query.
+
+type Query {
+  me: User
+  
+}
+
+# Mutations will be added here later
+type Mutation {
+  _empty: String
+}

@@ -1,0 +1,15 @@
+type User {
+  id: ID!
+  email: String!
+  name: String!
+  avatarUrl: String
+  role: String!
+  signups: [Signup!]!
+  earnedBadges: [EarnedBadge!]!
+}
+
+# Extend the main Query type
+extend type Query {
+  "Fetches the complete profile of the currently logged-in user."
+  myProfile: User!
+}
