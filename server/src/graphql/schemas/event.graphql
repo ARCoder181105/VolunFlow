@@ -14,6 +14,13 @@ input CreateEventInput {
   location: String!
 }
 
+input UpdateEventInput {
+  title: String
+  description: String
+  date: String 
+  location: String
+}
+
 # Extend the main Query and Mutation types
 extend type Query {
   "Fetches all events hosted by a specific NGO."
@@ -29,4 +36,10 @@ extend type Query {
 extend type Mutation {
   "Creates a new event for the admin's NGO."
   createEvent(input: CreateEventInput!): Event!
+  
+  "Update the event for admin's of NGO with Event Id"
+  updateEvent(eventId: ID!, input: UpdateEventInput!): Event!
+
+  "Delete a particulare event for admin's of NGO with Event id"
+  deleteEvent(eventId: ID!): Boolean!
 }

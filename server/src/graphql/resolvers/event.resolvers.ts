@@ -1,6 +1,35 @@
 import { GraphQLError } from "graphql";
 import prisma from "../../services/prisma.service.js";
-import { MyContext } from "../../types/context.types.js";
+import {
+  MyContext,
+  UpdateEventInput,
+  CreateEventInput,
+} from "../../types/context.types.js";
+
+const checkIsNgoAdmin = (user: MyContext["user"]) => {
+  if (!user) {
+    throw new GraphQLError("You must be logged in to perform this action.", {
+      extensions: { code: "UNAUTHENTICATED" },
+    });
+  }
+  if (user.role !== "NGO_ADMIN" || !user.adminOfNgoId) {
+    throw new GraphQLError("This action is restricted to NGO admins only.", {
+      extensions: { code: "FORBIDDEN" },
+    });
+  }
+};
+
+const checkAdminOwnsEvent = async (
+  user: MyContext["user"],
+  eventId: string
+) => {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event || event.ngoId !== user?.adminOfNgoId) {
+    throw new GraphQLError("You can only modify events for your own NGO.", {
+      extensions: { code: "FORBIDDEN" },
+    });
+  }
+};
 
 export const eventResolvers = {
   Query: {
@@ -8,7 +37,7 @@ export const eventResolvers = {
     getNgoEvents: async (_: any, { ngoId }: { ngoId: string }) => {
       return prisma.event.findMany({
         where: { ngoId },
-        orderBy: { date: "asc" }, // Show upcoming events first
+        orderBy: { date: "asc" },
       });
     },
     getAllEvents: async () => {
@@ -16,74 +45,140 @@ export const eventResolvers = {
       return prisma.event.findMany({
         where: {
           date: {
-            gte: new Date(), // gte means "greater than or equal to" today
+            gte: new Date(),
           },
         },
         orderBy: {
-          date: "asc", 
+          date: "asc",
         },
       });
     },
-    getEventAttendees: async (_: any, { eventId }: { eventId: string }, context: MyContext) => {
+    getEventAttendees: async (
+      _: any,
+      { eventId }: { eventId: string },
+      context: MyContext
+    ) => {
       const { user } = context;
 
-      // Security Check 1: Must be logged in as an NGO admin.
-      if (!user || user.role !== 'NGO_ADMIN' || !user.adminOfNgoId) {
-        throw new GraphQLError('You must be an NGO admin to view attendees.', {
-          extensions: { code: 'FORBIDDEN' },
-        });
-      }
-
-      // Security Check 2: Verify the event belongs to the admin's NGO.
-      const event = await prisma.event.findUnique({ where: { id: eventId } });
-      if (!event || event.ngoId !== user.adminOfNgoId) {
-        throw new GraphQLError("You can only view attendees for your own NGO's events.", {
-          extensions: { code: 'FORBIDDEN' },
-        });
-      }
+      checkIsNgoAdmin(user);
+      checkAdminOwnsEvent(user, eventId);
 
       // Fetch the signups for the event and include the user data for each signup.
       const signups = await prisma.signup.findMany({
         where: { eventId },
         include: {
-          user: true, // This fetches the full user profile for each signup
+          user: true, 
         },
       });
 
-      // Map the results to return a clean list of User objects.
-      return signups.map(signup => signup.user);
+      return signups.map((signup) => signup.user);
     },
   },
   Mutation: {
-    createEvent: async (_: any, { input }: any, context: MyContext) => {
+    createEvent: async (_: any, { input }: { input: CreateEventInput }, context: MyContext) => {
       const { user } = context;
 
-      // Security Check 1: Must be logged in.
       if (!user) {
         throw new GraphQLError("You must be logged in to create an event.", {
           extensions: { code: "UNAUTHENTICATED" },
         });
       }
 
-      // Security Check 2: Must be an NGO admin.
-      if (user.role !== 'NGO_ADMIN' || !user.adminOfNgoId) {
+      if (user.role !== "NGO_ADMIN" || !user.adminOfNgoId) {
         throw new GraphQLError("Only NGO admins can create events.", {
-          extensions: { code: "FORBIDDEN",user },
+          extensions: { code: "FORBIDDEN", user },
         });
       }
 
-      // The event is automatically linked to the admin's NGO from the token.
       const newEvent = await prisma.event.create({
         data: {
           title: input.title,
           description: input.description,
           location: input.location,
-          date: new Date(input.date), // Convert ISO string to a Date object
+          date: new Date(input.date), 
           ngoId: user.adminOfNgoId,
         },
       });
 
       return newEvent;
+    },
+
+    updateEvent: async (
+      _: any,
+      { eventId, input }: { eventId: string; input: UpdateEventInput },
+      context: MyContext
+    ) => {
+      const { user } = context;
+
+      if (!user) {
+        throw new GraphQLError("You must be logged in to update an event.", {
+          extensions: { code: "UNAUTHENTICATED" },
+        });
+      }
+
+      if (user.role !== "NGO_ADMIN" || !user.adminOfNgoId) {
+        throw new GraphQLError("Only NGO admins can update events.", {
+          extensions: { code: "FORBIDDEN", user },
+        });
+      }
+
+      const existingEvent = await prisma.event.findUnique({
+        where: { id: eventId },
+      });
+
+      if (!existingEvent || existingEvent.ngoId !== user.adminOfNgoId) {
+        throw new GraphQLError("You can only update events for your own NGO.", {
+          extensions: { code: "FORBIDDEN" },
+        });
+      }
+
+      const data: any = {};
+      if (input.title !== undefined) data.title = input.title;
+      if (input.description !== undefined) data.description = input.description;
+      if (input.location !== undefined) data.location = input.location;
+      if (input.date !== undefined) data.date = new Date(input.date);
+
+      const updatedEvent = await prisma.event.update({
+        where: { id: eventId },
+        data,
+      });
+
+      return updatedEvent;
+    },
+    deleteEvent: async (
+      _: any,
+      { eventId }: { eventId: string },
+      context: MyContext
+    ) => {
+      const { user } = context;
+
+      if (!user) {
+        throw new GraphQLError("You must be logged in to delete an event.", {
+          extensions: { code: "UNAUTHENTICATED" },
+        });
+      }
+
+      if (user.role !== "NGO_ADMIN" || !user.adminOfNgoId) {
+        throw new GraphQLError("Only NGO admins can delete events.", {
+          extensions: { code: "FORBIDDEN", user },
+        });
+      }
+
+      const existingEvent = await prisma.event.findUnique({
+        where: { id: eventId },
+      });
+
+      if (!existingEvent || existingEvent.ngoId !== user.adminOfNgoId) {
+        throw new GraphQLError("You can only delete events for your own NGO.", {
+          extensions: { code: "FORBIDDEN" },
+        });
+      }
+
+      await prisma.event.delete({
+        where: { id: eventId },
+      });
+
+      return true;
     },
   },
 };
