@@ -1,8 +1,21 @@
-import { GraphQLError } from 'graphql';
-import slugify from 'slugify'; 
-import prisma from '../../services/prisma.service.js';
-import { MyContext } from '../../types/context.types.js';
-import {NGO as NgoPrismaType} from '@prisma/client'
+import { GraphQLError } from "graphql";
+import slugify from "slugify";
+import prisma from "../../services/prisma.service.js";
+import { MyContext, UpdateNgoInput } from "../../types/context.types.js";
+import { NGO as NgoPrismaType, Prisma } from "@prisma/client";
+
+const checkIsNgoAdmin = (user: MyContext["user"]) => {
+  if (!user) {
+    throw new GraphQLError("You must be logged in to perform this action.", {
+      extensions: { code: "UNAUTHENTICATED" },
+    });
+  }
+  if (user.role !== "NGO_ADMIN" || !user.adminOfNgoId) {
+    throw new GraphQLError("This action is restricted to NGO admins only.", {
+      extensions: { code: "FORBIDDEN" },
+    });
+  }
+};
 
 export const ngoResolvers = {
   Query: {
@@ -12,30 +25,14 @@ export const ngoResolvers = {
     },
     myNgo: async (_: any, __: any, context: MyContext) => {
       const { user } = context;
+      checkIsNgoAdmin(user);
 
-      // Security Check 1: Must be logged in.
-      if (!user) {
-        throw new GraphQLError('You must be logged in to view your NGO.', {
-          extensions: { code: 'UNAUTHENTICATED' },
-        });
-      }
-
-      // Security Check 2: Must be an admin and have an NGO ID.
-      if (user.role !== 'NGO_ADMIN' || !user.adminOfNgoId) {
-        throw new GraphQLError('You are not an admin of any NGO.', {
-          extensions: { code: 'FORBIDDEN' },
-        });
-      }
-
-      // Fetch the NGO and *all* its related data in one call.
       return prisma.nGO.findUnique({
-        where: { id: user.adminOfNgoId },
+        where: { id: user!.adminOfNgoId! },
         include: {
-          events: {
-            orderBy: { date: 'desc' }, // Include all events
-          },
-          branches: true, // Include all branches
-          badges: true,   // Include all badge templates
+          events: { orderBy: { date: 'desc' } },
+          branches: true,
+          badges: true,
         },
       });
     },
@@ -44,8 +41,8 @@ export const ngoResolvers = {
     createNgo: async (_: any, { input }: any, context: MyContext) => {
       // This is a protected mutation.
       if (!context.user) {
-        throw new GraphQLError('You must be logged in to create an NGO.', {
-          extensions: { code: 'UNAUTHENTICATED' },
+        throw new GraphQLError("You must be logged in to create an NGO.", {
+          extensions: { code: "UNAUTHENTICATED" },
         });
       }
 
@@ -67,7 +64,7 @@ export const ngoResolvers = {
         await tx.user.update({
           where: { id: context.user!.id },
           data: {
-            role: 'NGO_ADMIN',
+            role: "NGO_ADMIN",
             adminOfNgoId: ngo.id,
           },
         });
@@ -76,6 +73,61 @@ export const ngoResolvers = {
       });
 
       return newNgo;
+    },
+    
+    updateNgoProfile: async (
+      _: any,
+      { input }: { input: UpdateNgoInput },
+      context: MyContext
+    ) => {
+      const { user } = context;
+      checkIsNgoAdmin(user);
+
+      const dataToUpdate: Prisma.NGOUpdateInput = { ...input };
+
+      // If the name is being updated, we must also update the slug
+      if (input.name) {
+        dataToUpdate.slug = (slugify as any)(input.name, { lower: true, strict: true });
+      }
+
+      return prisma.nGO.update({
+        where: { id: user!.adminOfNgoId! },
+        data: dataToUpdate,
+      });
+    },
+
+    deleteNgo: async (_: any, __: any, context: MyContext) => {
+      const { user } = context;
+      checkIsNgoAdmin(user);
+
+      const adminId = user!.id;
+      const ngoId = user!.adminOfNgoId!;
+
+      try {
+        // Use a transaction to ensure both operations succeed or fail
+        await prisma.$transaction(async (tx) => {
+          // 1. Delete the NGO. Cascading deletes will handle events, badges, etc.
+          await tx.nGO.delete({
+            where: { id: ngoId },
+          });
+
+          // 2. Demote the user back to a VOLUNTEER and remove the NGO link
+          await tx.user.update({
+            where: { id: adminId },
+            data: {
+              role: 'VOLUNTEER',
+              adminOfNgoId: null,
+            },
+          });
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Failed to delete NGO:", error);
+        throw new GraphQLError("Could not delete NGO.", {
+          extensions: { code: "INTERNAL_SERVER_ERROR" },
+        });
+      }
     },
   },
   NGO: {

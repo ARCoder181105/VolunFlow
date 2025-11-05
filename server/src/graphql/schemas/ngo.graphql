@@ -11,6 +11,15 @@ type NGO {
   badges: [Badge!]!
 }
 
+# Update NGO input
+input UpdateNgoInput {
+  name: String
+  description: String
+  logoUrl: String
+  website: String
+  contactEmail: String
+}
+
 # Input type for creating a new NGO
 input CreateNgoInput {
   name: String!
@@ -30,4 +39,10 @@ extend type Query {
 extend type Mutation {
   "Creates a new NGO and makes the logged-in user its admin."
   createNgo(input: CreateNgoInput!): NGO!
+
+  "Updates the profile of the logged-in admin's NGO."
+  updateNgoProfile(input: UpdateNgoInput!): NGO!
+
+  "Deletes the logged-in admin's NGO and all associated data."
+  deleteNgo: Boolean!
 }

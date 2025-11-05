@@ -1,0 +1,16 @@
+type Branch {
+  id: ID!
+  address: String!
+  city: String!
+  latitude: Float!
+  longitude: Float!
+}
+
+# Extend the main Query and Mutation types
+extend type Query {
+
+}
+
+extend type Mutation {
+
+}

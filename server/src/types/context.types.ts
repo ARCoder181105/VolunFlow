@@ -29,3 +29,11 @@ export interface UpdateUserInput {
   name?: string;
   avatarUrl?: string;
 }
+
+export interface UpdateNgoInput {
+  name?: string;
+  description?: string;
+  logoUrl?: string;
+  website?: string;
+  contactEmail?: string;
+}
