@@ -4,6 +4,7 @@ type Badge {
   name: String!
   description: String!
   imageUrl: String!
+  criteria: String!
 }
 
 "A record of a user earning a specific badge."
@@ -19,6 +20,14 @@ input CreateBadgeInput {
   name: String!
   description: String!
   imageUrl: String! # This URL will come from our /upload endpoint
+  criteria: String!
+}
+
+input UpdateBadgeInput {
+  name: String
+  description: String
+  imageUrl: String
+  criteria: String
 }
 
 # Extend the main Mutation type
@@ -28,4 +37,10 @@ extend type Mutation {
 
   "Awards a badge to a specific user."
   awardBadge(userId: ID!, badgeId: ID!): EarnedBadge!
+
+  "Updates an existing badge template."
+  updateBadgeTemplate(badgeId: ID!, input: UpdateBadgeInput!): Badge!
+
+  "Deletes a badge template."
+  deleteBadgeTemplate(badgeId: ID!): Boolean!
 }

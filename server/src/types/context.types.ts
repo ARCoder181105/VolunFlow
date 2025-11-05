@@ -37,3 +37,17 @@ export interface UpdateNgoInput {
   website?: string;
   contactEmail?: string;
 }
+
+export interface CreateBadgeInput {
+  name: string;
+  description: string;
+  imageUrl: string;
+  criteria: String;
+}
+
+export interface UpdateBadgeInput {
+  name?: string;
+  description?: string;
+  imageUrl?: string;
+  criteria?: string;
+}
