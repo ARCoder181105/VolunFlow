@@ -2,12 +2,42 @@ import { GraphQLError } from 'graphql';
 import slugify from 'slugify'; 
 import prisma from '../../services/prisma.service.js';
 import { MyContext } from '../../types/context.types.js';
+import {NGO as NgoPrismaType} from '@prisma/client'
 
 export const ngoResolvers = {
   Query: {
     // This is a public query, so no auth check is needed.
     getNgoBySlug: async (_: any, { slug }: { slug: string }) => {
       return prisma.nGO.findUnique({ where: { slug } });
+    },
+    myNgo: async (_: any, __: any, context: MyContext) => {
+      const { user } = context;
+
+      // Security Check 1: Must be logged in.
+      if (!user) {
+        throw new GraphQLError('You must be logged in to view your NGO.', {
+          extensions: { code: 'UNAUTHENTICATED' },
+        });
+      }
+
+      // Security Check 2: Must be an admin and have an NGO ID.
+      if (user.role !== 'NGO_ADMIN' || !user.adminOfNgoId) {
+        throw new GraphQLError('You are not an admin of any NGO.', {
+          extensions: { code: 'FORBIDDEN' },
+        });
+      }
+
+      // Fetch the NGO and *all* its related data in one call.
+      return prisma.nGO.findUnique({
+        where: { id: user.adminOfNgoId },
+        include: {
+          events: {
+            orderBy: { date: 'desc' }, // Include all events
+          },
+          branches: true, // Include all branches
+          badges: true,   // Include all badge templates
+        },
+      });
     },
   },
   Mutation: {
@@ -46,6 +76,24 @@ export const ngoResolvers = {
       });
 
       return newNgo;
+    },
+  },
+  NGO: {
+    // The 'parent' argument is the NGO object returned by getNgoBySlug
+    events: (parent: NgoPrismaType) => {
+      return prisma.event.findMany({
+        where: { ngoId: parent.id },
+      });
+    },
+    branches: (parent: NgoPrismaType) => {
+      return prisma.branch.findMany({
+        where: { ngoId: parent.id },
+      });
+    },
+    badges: (parent: NgoPrismaType) => {
+      return prisma.badge.findMany({
+        where: { ngoId: parent.id },
+      });
     },
   },
 };

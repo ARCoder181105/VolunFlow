@@ -10,4 +10,7 @@ type Signup {
 extend type Mutation {
   "Signs up the current logged-in user for a specific event."
   signupForEvent(eventId: ID!): Signup!
+
+  "Cancel the signUp by a logged-in user for a specific event"
+  cancelSignupForEvent(eventId: ID!): Signup!
 }

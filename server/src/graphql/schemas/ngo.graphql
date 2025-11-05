@@ -6,6 +6,9 @@ type NGO {
   logoUrl: String
   website: String
   contactEmail: String!
+  events: [Event!]!
+  branches: [Branch!]!
+  badges: [Badge!]!
 }
 
 # Input type for creating a new NGO
@@ -19,6 +22,9 @@ input CreateNgoInput {
 extend type Query {
   "Fetches the public profile for a single NGO by its unique slug."
   getNgoBySlug(slug: String!): NGO
+
+  "Get NGO ADMIN all there details about there ngo"
+  myNgo: NGO
 }
 
 extend type Mutation {
