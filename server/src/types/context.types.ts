@@ -10,6 +10,7 @@ export interface CreateEventInput {
   description: string;
   location: string;
   date: string;
+  tags?: string[];
 }
 
 export interface UpdateEventInput {
@@ -17,6 +18,7 @@ export interface UpdateEventInput {
   description?: string;
   location?: string;
   date?: string;
+  tags?: string[]; 
 }
 
 export interface CreateUserInput {

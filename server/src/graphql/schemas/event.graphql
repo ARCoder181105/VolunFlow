@@ -1,27 +1,41 @@
+"Represents an event hosted by an NGO."
 type Event {
   id: ID!
   title: String!
   description: String!
-  date: String!
+  tags: [String!]!
+  date: String! # ISO 8601 date string
   location: String!
+  imageUrl: String
+  maxVolunteers: Int
 }
 
-# Input type for creating a new event
+# --- Inputs ---
+
+"Input type for creating a new event."
 input CreateEventInput {
   title: String!
   description: String!
-  date: String! # ISO 8601 date string e.g., "2025-12-25T10:00:00.000Z"
+  date: String! # ISO 8601 date string
   location: String!
+  tags: [String!]
+  imageUrl: String
+  maxVolunteers: Int
 }
 
+"Input type for updating an existing event. All fields are optional."
 input UpdateEventInput {
   title: String
   description: String
-  date: String 
+  date: String
   location: String
+  tags: [String!]
+  imageUrl: String
+  maxVolunteers: Int
 }
 
-# Extend the main Query and Mutation types
+# --- Queries ---
+
 extend type Query {
   "Fetches all events hosted by a specific NGO."
   getNgoEvents(ngoId: ID!): [Event]!
@@ -30,16 +44,21 @@ extend type Query {
   getAllEvents: [Event]!
 
   "Fetches the list of volunteers who have signed up for a specific event."
-  getEventAttendees(eventId: ID!): [User]! 
+  getEventAttendees(eventId: ID!): [User]!
 }
+
+# --- Mutations ---
 
 extend type Mutation {
   "Creates a new event for the admin's NGO."
   createEvent(input: CreateEventInput!): Event!
-  
-  "Update the event for admin's of NGO with Event Id"
+
+  "Updates an existing event for the admin's NGO."
   updateEvent(eventId: ID!, input: UpdateEventInput!): Event!
 
-  "Delete a particulare event for admin's of NGO with Event id"
+  "Deletes an event for the admin's NGO."
   deleteEvent(eventId: ID!): Boolean!
+
+  "Generates suggested tags for an event based on its description."
+  generateEventTags(description: String!): [String!]!
 }

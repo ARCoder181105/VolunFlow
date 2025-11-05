@@ -1,10 +1,13 @@
 import { GraphQLError } from "graphql";
 import prisma from "../../services/prisma.service.js";
-import {
-  MyContext,
-  UpdateEventInput,
-  CreateEventInput,
-} from "../../types/context.types.js";
+import { MyContext, CreateEventInput, UpdateEventInput } from "../../types/context.types.js";
+import { Prisma, User } from "@prisma/client";
+import { GoogleGenAI } from "@google/genai";
+
+// --- AI Setup ---
+// Initialize the AI client
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenAI({apiKey})
 
 const checkIsNgoAdmin = (user: MyContext["user"]) => {
   if (!user) {
@@ -19,10 +22,7 @@ const checkIsNgoAdmin = (user: MyContext["user"]) => {
   }
 };
 
-const checkAdminOwnsEvent = async (
-  user: MyContext["user"],
-  eventId: string
-) => {
+const checkAdminOwnsEvent = async (user: MyContext["user"], eventId: string) => {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event || event.ngoId !== user?.adminOfNgoId) {
     throw new GraphQLError("You can only modify events for your own NGO.", {
@@ -31,21 +31,29 @@ const checkAdminOwnsEvent = async (
   }
 };
 
+// --- Resolver Map ---
 export const eventResolvers = {
   Query: {
-    // This is a public query, anyone can see an NGO's events.
+    /**
+     * Fetches all events for a specific NGO.
+     * Publicly accessible.
+     */
     getNgoEvents: async (_: any, { ngoId }: { ngoId: string }) => {
       return prisma.event.findMany({
         where: { ngoId },
         orderBy: { date: "asc" },
       });
     },
+
+    /**
+     * Fetches all upcoming events from all NGOs.
+     * Publicly accessible.
+     */
     getAllEvents: async () => {
-      // Fetch all events where the date is in the future
       return prisma.event.findMany({
         where: {
           date: {
-            gte: new Date(),
+            gte: new Date(), // Only show events from today onwards
           },
         },
         orderBy: {
@@ -53,132 +61,143 @@ export const eventResolvers = {
         },
       });
     },
+
+    /**
+     * Fetches all volunteers who signed up for a specific event.
+     * Restricted to the admin of that event's NGO.
+     */
     getEventAttendees: async (
       _: any,
       { eventId }: { eventId: string },
       context: MyContext
     ) => {
       const { user } = context;
-
       checkIsNgoAdmin(user);
-      checkAdminOwnsEvent(user, eventId);
+      await checkAdminOwnsEvent(user!, eventId);
 
-      // Fetch the signups for the event and include the user data for each signup.
       const signups = await prisma.signup.findMany({
         where: { eventId },
-        include: {
-          user: true, 
-        },
+        include: { user: true },
       });
 
+      // Return the list of User objects
       return signups.map((signup) => signup.user);
     },
   },
+
   Mutation: {
-    createEvent: async (_: any, { input }: { input: CreateEventInput }, context: MyContext) => {
+    /**
+     * Creates a new event for the logged-in admin's NGO.
+     */
+    createEvent: async (
+      _: any,
+      { input }: { input: CreateEventInput },
+      context: MyContext
+    ) => {
       const { user } = context;
+      checkIsNgoAdmin(user);
 
-      if (!user) {
-        throw new GraphQLError("You must be logged in to create an event.", {
-          extensions: { code: "UNAUTHENTICATED" },
-        });
-      }
+      const { date, ...rest } = input;
 
-      if (user.role !== "NGO_ADMIN" || !user.adminOfNgoId) {
-        throw new GraphQLError("Only NGO admins can create events.", {
-          extensions: { code: "FORBIDDEN", user },
-        });
-      }
-
-      const newEvent = await prisma.event.create({
+      return prisma.event.create({
         data: {
-          title: input.title,
-          description: input.description,
-          location: input.location,
-          date: new Date(input.date), 
-          ngoId: user.adminOfNgoId,
+          ...rest, // Includes title, description, location, tags, etc.
+          date: new Date(date), // Convert ISO string to a Date object
+          ngoId: user!.adminOfNgoId!,
         },
       });
-
-      return newEvent;
     },
 
+    /**
+     * Updates an existing event.
+     * Restricted to the admin of that event's NGO.
+     */
     updateEvent: async (
       _: any,
       { eventId, input }: { eventId: string; input: UpdateEventInput },
       context: MyContext
     ) => {
       const { user } = context;
+      checkIsNgoAdmin(user);
+      await checkAdminOwnsEvent(user!, eventId);
 
-      if (!user) {
-        throw new GraphQLError("You must be logged in to update an event.", {
-          extensions: { code: "UNAUTHENTICATED" },
-        });
-      }
+      const { date, ...rest } = input;
+      const dataToUpdate: Prisma.EventUpdateInput = {
+        ...rest,
+        ...(date && { date: new Date(date) }), // Conditionally add date if it exists
+      };
 
-      if (user.role !== "NGO_ADMIN" || !user.adminOfNgoId) {
-        throw new GraphQLError("Only NGO admins can update events.", {
-          extensions: { code: "FORBIDDEN", user },
-        });
-      }
-
-      const existingEvent = await prisma.event.findUnique({
+      return prisma.event.update({
         where: { id: eventId },
+        data: dataToUpdate,
       });
-
-      if (!existingEvent || existingEvent.ngoId !== user.adminOfNgoId) {
-        throw new GraphQLError("You can only update events for your own NGO.", {
-          extensions: { code: "FORBIDDEN" },
-        });
-      }
-
-      const data: any = {};
-      if (input.title !== undefined) data.title = input.title;
-      if (input.description !== undefined) data.description = input.description;
-      if (input.location !== undefined) data.location = input.location;
-      if (input.date !== undefined) data.date = new Date(input.date);
-
-      const updatedEvent = await prisma.event.update({
-        where: { id: eventId },
-        data,
-      });
-
-      return updatedEvent;
     },
+
+    /**
+     * Deletes an event.
+     * Restricted to the admin of that event's NGO.
+     */
     deleteEvent: async (
       _: any,
       { eventId }: { eventId: string },
       context: MyContext
     ) => {
       const { user } = context;
-
-      if (!user) {
-        throw new GraphQLError("You must be logged in to delete an event.", {
-          extensions: { code: "UNAUTHENTICATED" },
-        });
-      }
-
-      if (user.role !== "NGO_ADMIN" || !user.adminOfNgoId) {
-        throw new GraphQLError("Only NGO admins can delete events.", {
-          extensions: { code: "FORBIDDEN", user },
-        });
-      }
-
-      const existingEvent = await prisma.event.findUnique({
-        where: { id: eventId },
-      });
-
-      if (!existingEvent || existingEvent.ngoId !== user.adminOfNgoId) {
-        throw new GraphQLError("You can only delete events for your own NGO.", {
-          extensions: { code: "FORBIDDEN" },
-        });
-      }
+      checkIsNgoAdmin(user);
+      await checkAdminOwnsEvent(user!, eventId);
 
       await prisma.event.delete({
         where: { id: eventId },
       });
 
       return true;
+    },
+
+    /**
+     * Generates a list of suggested tags based on an event description.
+     * Restricted to NGO admins.
+     */
+    generateEventTags: async (
+      _: any,
+      { description }: { description: string },
+      context: MyContext
+    ) => {
+      const { user } = context;
+      checkIsNgoAdmin(user); // Only admins can use this feature
+
+      const prompt = `
+        Based on the following event description, generate a list of 3-5 relevant keyword tags.
+        Return *only* a valid JSON array of strings. Do not include any other text or markdown.
+        Example: ["Community", "Environment", "Volunteering"]
+        Description: "${description}"
+      `;
+
+      try {
+        const result = await genAI.models.generateContent({
+          model:"gemini-pro",
+          contents:prompt
+        })
+        const text = result?.text ?? "";
+
+        if (!text.trim()) {
+          console.error("AI Tag Generation Failed: empty response", result);
+          throw new GraphQLError("Failed to generate tags.", {
+            extensions: { code: "INTERNAL_SERVER_ERROR" },
+          });
+        }
+        
+        // Clean up the AI response just in case it includes markdown
+        const jsonText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        
+        const tags: string[] = JSON.parse(jsonText);
+        return tags;
+
+      } catch (error) {
+        console.error("AI Tag Generation Failed:", error);
+        throw new GraphQLError("Failed to generate tags.", {
+          extensions: { code: "INTERNAL_SERVER_ERROR" },
+        });
+      }
     },
   },
 };
