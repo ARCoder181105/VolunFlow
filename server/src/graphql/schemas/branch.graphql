@@ -6,11 +6,3 @@ type Branch {
   longitude: Float!
 }
 
-# Extend the main Query and Mutation types
-extend type Query {
-
-}
-
-extend type Mutation {
-
-}

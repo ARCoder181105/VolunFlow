@@ -2,6 +2,7 @@ import { GraphQLError } from "graphql";
 import prisma from "../../services/prisma.service.js";
 import { MyContext } from "../../types/context.types.js";
 import { Prisma } from "@prisma/client";
+import { triggerEventSignup } from "../../services/webhook.service.js";
 
 export const signupResolvers = {
   Mutation: {
@@ -31,6 +32,8 @@ export const signupResolvers = {
             user: true,
           },
         });
+        console.log(newSignup)
+        triggerEventSignup(newSignup.user, newSignup.event);
 
         return newSignup;
       } catch (error) {

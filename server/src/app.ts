@@ -6,24 +6,41 @@ import cookieParser from 'cookie-parser';
 import passport from './config/passport.js';
 
 // --- Apollo Server Imports ---
-import { createApolloGraphQLMiddleware } from './config/apollo.js'; 
+import { createApolloGraphQLMiddleware } from './config/apollo.js';
 
 // --- REST Route Imports ---
 import authRoutes from './rest/auth.routes.js';
 import uploadRoutes from './rest/upload.routes.js';
 
+// Create the Express app instance
 const app = express();
 
-async function startServer() {
+/**
+ * Sets up and configures the Express server.
+ * This includes all middleware, routes, and GraphQL.
+ */
+export async function setupServer() {
   // --- Core Middleware ---
   app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
-  // app.use(helmet()); 
+  
+  // Configure Helmet to allow Apollo Sandbox in development
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "script-src-attr": ["'unsafe-inline'"],
+          "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+        },
+      },
+    })
+  );
+  
   app.use(morgan('dev'));
   app.use(express.json());
   app.use(cookieParser());
   app.use(passport.initialize());
 
-  
   // --- API Version 1 Router ---
   const apiV1Router = Router();
 
@@ -39,8 +56,10 @@ async function startServer() {
 
   // --- Health Check ---
   app.get('/ping', (req, res) => res.status(200).json({ message: 'pong! 🏓' }));
+
+  // Return the configured app
+  return app;
 }
 
-startServer();
-
+// Export the app instance for testing and for server.ts
 export default app;

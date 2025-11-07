@@ -6,7 +6,6 @@ import passport from '../config/passport.js';
 
 const router = Router();
 const CLIENT_URL = process.env.CLIENT_URL as string;
-// Use the specific secret for verifying refresh tokens
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
 
 // --- Helper Function for setting cookies ---

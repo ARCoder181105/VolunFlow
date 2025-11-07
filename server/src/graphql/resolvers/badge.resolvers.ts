@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql';
 import prisma from '../../services/prisma.service.js';
 import { MyContext, UpdateBadgeInput, CreateBadgeInput } from '../../types/context.types.js';
 import { Prisma, User } from '@prisma/client';
+import { triggerBadgeAwarded } from '../../services/webhook.service.js';
 
 const checkIsNgoAdmin = (user: MyContext["user"]) => {
   if (!user) {
@@ -67,10 +68,14 @@ export const badgeResolvers = {
       await checkAdminOwnsBadge(user!, badgeId); // Must own the badge
 
       try {
-        return prisma.earnedBadge.create({
+        const earnedBadge = await prisma.earnedBadge.create({
           data: { userId, badgeId },
           include: { badge: true, user: true }, // Return rich data
         });
+
+         triggerBadgeAwarded(earnedBadge.user, earnedBadge.badge);
+        
+        return earnedBadge;
       } catch (error) {
         // Handle case where user has already earned this badge
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {

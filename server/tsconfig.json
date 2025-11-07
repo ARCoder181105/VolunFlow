@@ -14,7 +14,8 @@
     "strict": true,                           // Enable all strict type-checking options
     "esModuleInterop": true,                  // Allows for better compatibility with CommonJS modules
     "forceConsistentCasingInFileNames": true, // Prevents case-sensitive path bugs
-    "skipLibCheck": true                      // Skip type checking of declaration files in node_modules
+    "skipLibCheck": true  ,                   // Skip type checking of declaration files in node_modules
+    "isolatedModules": true  
   },
   "include": ["./src/**/*"],                   // Specifies which files TypeScript should compile (match only files under server/src)
   "exclude": ["node_modules"],                // Specifies which files to exclude
