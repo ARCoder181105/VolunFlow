@@ -73,17 +73,21 @@ const AdminDashboard: React.FC = () => {
               <Plus className="w-8 h-8 text-blue-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">Create Event</span>
             </Link>
-            
-            <button className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition duration-200">
+
+            // Replace the Create Badge button with a Link
+            <Link
+              to="/badges/create"
+              className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition duration-200 block"
+            >
               <Award className="w-8 h-8 text-green-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">Create Badge</span>
-            </button>
-            
+            </Link>
+
             <button className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition duration-200">
               <Users className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">Manage Volunteers</span>
             </button>
-            
+
             <button className="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition duration-200">
               <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">View Reports</span>

@@ -59,7 +59,7 @@ export const ngoResolvers = {
         });
       }
 
-      const { name, description, contactEmail } = input;
+      const { name, description, contactEmail, logoUrl } = input;
       const slug = (slugify as any)(name, { lower: true, strict: true });
 
       // Use a transaction to ensure both operations (create NGO, update user) succeed or fail together.
@@ -70,6 +70,7 @@ export const ngoResolvers = {
             slug,
             description,
             contactEmail,
+            logoUrl
           },
         });
 

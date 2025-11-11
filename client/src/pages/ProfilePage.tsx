@@ -1,13 +1,23 @@
-import React from 'react';
-import { useQuery } from '@apollo/client/react';
-import { User, Mail, Calendar, Award } from 'lucide-react';
+import React, { useState } from 'react';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { User, Mail, Calendar, Award, Edit3 } from 'lucide-react';
 import { MY_PROFILE_QUERY } from '../graphql/queries/user.queries';
+import { UPDATE_USER_MUTATION } from '../graphql/mutations/user.mutations';
 import type { UserProfile } from '../types/user.types';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import EditProfileForm from '../components/auth/EditProfileForm';
 import { format } from 'date-fns';
 
 const ProfilePage: React.FC = () => {
-  const { data, loading, error } = useQuery<{ myProfile: UserProfile }>(MY_PROFILE_QUERY);
+  const [isEditing, setIsEditing] = useState(false);
+  const { data, loading, error, refetch } = useQuery<{ myProfile: UserProfile }>(MY_PROFILE_QUERY);
+  
+  const [updateUser, { loading: updateLoading }] = useMutation(UPDATE_USER_MUTATION, {
+    onCompleted: () => {
+      refetch();
+      setIsEditing(false);
+    },
+  });
 
   if (loading) return <LoadingSpinner />;
   if (error) return <div>Error loading profile</div>;
@@ -20,6 +30,46 @@ const ProfilePage: React.FC = () => {
   const pastEvents = profile?.signups?.filter(signup => 
     new Date(signup.event.date) <= new Date()
   ) || [];
+
+  const handleUpdateProfile = async (data: { name: string; avatarUrl?: string }) => {
+    try {
+      await updateUser({ 
+        variables: { 
+          input: {
+            name: data.name,
+            ...(data.avatarUrl && { avatarUrl: data.avatarUrl })
+          } 
+        } 
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="card">
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Profile</h1>
+                <p className="text-gray-600">Update your personal information</p>
+              </div>
+              
+              <EditProfileForm
+                user={profile}
+                onSubmit={handleUpdateProfile}
+                onCancel={() => setIsEditing(false)}
+                loading={updateLoading}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,8 +89,17 @@ const ProfilePage: React.FC = () => {
                   <User className="w-10 h-10 text-blue-600" />
                 </div>
               )}
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{profile?.name}</h1>
+              <div className="flex-grow">
+                <div className="flex items-center space-x-3 mb-2">
+                  <h1 className="text-2xl font-bold text-gray-900">{profile?.name}</h1>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    <Edit3 className="w-4 h-4 mr-1" />
+                    Edit
+                  </button>
+                </div>
                 <div className="flex items-center text-gray-600 mt-1">
                   <Mail className="w-4 h-4 mr-2" />
                   <span>{profile?.email}</span>
@@ -54,6 +113,7 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
+          {/* Rest of the profile page remains the same */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Upcoming Events */}
             <div className="card">

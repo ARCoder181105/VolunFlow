@@ -8,8 +8,24 @@ type User {
   earnedBadges: [EarnedBadge!]!
 }
 
+input UpdateUserInput {
+  name: String
+  avatarUrl: String
+}
+
 # Extend the main Query type
 extend type Query {
+  "Fetches the currently logged-in user's basic info."
+  me: User
+  
   "Fetches the complete profile of the currently logged-in user."
   myProfile: User!
+}
+
+# Extend the main Mutation type
+extend type Mutation {
+  "Updates the currently logged-in user's profile."
+  updateUser(input: UpdateUserInput!): User!
+  
+  _empty: String
 }

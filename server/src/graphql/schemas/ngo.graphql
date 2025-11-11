@@ -25,6 +25,7 @@ input CreateNgoInput {
   name: String!
   description: String!
   contactEmail: String!
+  logoUrl: String!
 }
 
 # Extend the main Query and Mutation types

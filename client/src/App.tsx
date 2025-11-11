@@ -15,6 +15,7 @@ import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import EventDetailsPage from './pages/EventDetailsPage';
+import CreateBadgePage from './pages/CreateBadgePage';
 import './styles/globals.css';
 
 function App() {
@@ -34,6 +35,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/badges/create"
+                  element={
+                    <ProtectedRoute>
+                      <CreateBadgePage />
                     </ProtectedRoute>
                   }
                 />

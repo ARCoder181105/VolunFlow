@@ -1,8 +1,8 @@
-import { User } from '@prisma/client';
+import { User } from "@prisma/client";
 
 // This interface defines the shape of our GraphQL context object.
 export interface MyContext {
-  user?: Omit<User, 'password' | 'refreshToken'>;
+  user?: Omit<User, "password" | "refreshToken">;
 }
 
 export interface CreateEventInput {
@@ -18,7 +18,7 @@ export interface UpdateEventInput {
   description?: string;
   location?: string;
   date?: string;
-  tags?: string[]; 
+  tags?: string[];
 }
 
 export interface CreateUserInput {
