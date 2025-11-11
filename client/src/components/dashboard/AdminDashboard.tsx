@@ -67,31 +67,36 @@ const AdminDashboard: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-4">
             <Link
-              to="/events/create"
-              className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition duration-200"
+              to="/events?action=create"
+              className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition duration-200 hover-raise"
             >
               <Plus className="w-8 h-8 text-blue-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">Create Event</span>
             </Link>
 
-            // Replace the Create Badge button with a Link
             <Link
               to="/badges/create"
-              className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition duration-200 block"
+              className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition duration-200 hover-raise block"
             >
               <Award className="w-8 h-8 text-green-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">Create Badge</span>
             </Link>
 
-            <button className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition duration-200">
+            <Link
+              to="/dashboard?tab=volunteers"
+              className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition duration-200 hover-raise"
+            >
               <Users className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">Manage Volunteers</span>
-            </button>
+            </Link>
 
-            <button className="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition duration-200">
+            <Link
+              to="/dashboard?tab=reports"
+              className="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition duration-200 hover-raise"
+            >
               <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">View Reports</span>
-            </button>
+            </Link>
           </div>
         </div>
 
