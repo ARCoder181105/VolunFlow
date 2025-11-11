@@ -22,7 +22,7 @@ const NgoCard: React.FC<NgoCardProps> = ({ ngo, showActions = true,  }) => {
   const totalEvents = ngo.events?.length || 0;
 
   return (
-    <div className="card hover:shadow-lg transition-all duration-300">
+    <div className="card hover:shadow-lg transition-all duration-300 hover-raise">
       {/* Header */}
       <div className="flex items-start space-x-4 mb-4">
         {ngo.logoUrl ? (
@@ -61,7 +61,7 @@ const NgoCard: React.FC<NgoCardProps> = ({ ngo, showActions = true,  }) => {
               href={ngo.website} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="hover:text-blue-600 transition-colors"
+              className="hover:text-blue-600 transition-colors link-underline"
             >
               Visit Website
             </a>
@@ -116,13 +116,13 @@ const NgoCard: React.FC<NgoCardProps> = ({ ngo, showActions = true,  }) => {
         <div className="flex space-x-2">
           <Link
             to={`/ngo/${ngo.slug}`}
-            className="flex-1 btn-primary text-center text-sm py-2"
+            className="flex-1 btn-primary hover-raise text-center text-sm py-2"
           >
             View Details
           </Link>
           <Link
             to={`/events?ngo=${ngo.id}`}
-            className="flex-1 btn-secondary text-center text-sm py-2"
+            className="flex-1 btn-secondary hover-raise text-center text-sm py-2"
           >
             View Events
           </Link>

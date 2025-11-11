@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Menu, X, User, LogOut, Settings } from 'lucide-react';
+import Logo from './Logo';
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
@@ -15,37 +16,33 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="sticky top-0 z-40 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">VF</span>
-            </div>
-            <span className="text-xl font-bold text-gray-900 font-poppins">
-              VolunFlow
-            </span>
+          <Link to="/" className="flex items-center gap-2 group">
+            <Logo className="w-8 h-8 rounded-md shadow-sm" />
+            <span className="text-xl font-bold text-gray-900 font-poppins group-hover:text-blue-700 transition-colors duration-200">VolunFlow</span>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link
               to="/events"
-              className="text-gray-700 hover:text-blue-600 font-medium transition duration-200"
+              className="text-gray-700 hover:text-blue-600 font-medium transition duration-200 link-underline"
             >
               Events
             </Link>
             <Link
               to="/ngo"
-              className="text-gray-700 hover:text-blue-600 font-medium transition duration-200"
+              className="text-gray-700 hover:text-blue-600 font-medium transition duration-200 link-underline"
             >
               NGOs
             </Link>
             {user && (
               <Link
                 to="/dashboard"
-                className="text-gray-700 hover:text-blue-600 font-medium transition duration-200"
+                className="text-gray-700 hover:text-blue-600 font-medium transition duration-200 link-underline"
               >
                 Dashboard
               </Link>
@@ -110,7 +107,7 @@ const Header: React.FC = () => {
               <div className="hidden md:flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-gray-700 hover:text-blue-600 font-medium transition duration-200"
+                  className="text-gray-700 hover:text-blue-600 font-medium transition duration-200 link-underline"
                 >
                   Sign In
                 </Link>

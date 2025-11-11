@@ -27,7 +27,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, loading }) => {
   });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 fade-in">
       {/* Email */}
       <div>
         <label htmlFor="email" className="form-label">
@@ -36,7 +36,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, loading }) => {
         <input
           {...register('email')}
           type="email"
-          className="input-field"
+          className="input-field focus:ring-blue-500 focus:border-blue-500"
           placeholder="Enter your email"
           disabled={loading}
         />
@@ -54,7 +54,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, loading }) => {
           <input
             {...register('password')}
             type={showPassword ? 'text' : 'password'}
-            className="input-field pr-10"
+            className="input-field pr-10 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter your password"
             disabled={loading}
           />
@@ -89,7 +89,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, loading }) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full btn-primary flex items-center justify-center"
+        className="w-full btn-primary hover-raise flex items-center justify-center"
       >
         {loading ? (
           <>
@@ -105,7 +105,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, loading }) => {
       <div className="text-center">
         <p className="text-sm text-gray-600">
           Don't have an account?{' '}
-          <a href="/register" className="text-blue-600 hover:text-blue-500 font-medium">
+          <a href="/register" className="text-blue-600 hover:text-blue-500 font-medium link-underline">
             Sign up
           </a>
         </p>

@@ -26,12 +26,12 @@ const EventCard: React.FC<EventCardProps> = ({
   const eventTags = event.tags || [];
 
   return (
-    <div className="card hover:shadow-lg transition-all duration-300">
+    <div className="card hover:shadow-lg transition-all duration-300 hover-raise group">
       {event.imageUrl && (
         <img
           src={event.imageUrl}
           alt={event.title}
-          className="w-full h-48 object-cover rounded-t-lg mb-4"
+          className="w-full h-48 object-cover rounded-t-lg mb-4 transition-transform duration-300 group-hover:scale-[1.03]"
         />
       )}
       
@@ -40,7 +40,7 @@ const EventCard: React.FC<EventCardProps> = ({
           <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
             <Link 
               to={`/events/${event.id}`}
-              className="hover:text-blue-600 transition-colors"
+              className="hover:text-blue-600 transition-colors link-underline"
             >
               {event.title}
             </Link>
@@ -78,7 +78,7 @@ const EventCard: React.FC<EventCardProps> = ({
               {eventTags.slice(0, 3).map((tag, index) => (
                 <span
                   key={index}
-                  className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                  className="px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors text-xs rounded-full"
                 >
                   {tag}
                 </span>
@@ -92,14 +92,14 @@ const EventCard: React.FC<EventCardProps> = ({
             {isSignedUp ? (
               <button
                 onClick={() => onCancel?.(event.id)}
-                className="w-full btn-secondary text-red-600 border-red-300 hover:bg-red-50"
+                className="w-full btn-secondary text-red-600 border-red-300 hover:bg-red-50 hover-raise"
               >
                 Cancel Registration
               </button>
             ) : (
               <button
                 onClick={() => onSignUp?.(event.id)}
-                className="w-full btn-primary"
+                className="w-full btn-primary hover-raise"
               >
                 Sign Up
               </button>

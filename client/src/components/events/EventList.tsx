@@ -19,7 +19,7 @@ const EventList: React.FC<EventListProps> = ({
 }) => {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">
         {[...Array(6)].map((_, index) => (
           <div key={index} className="card animate-pulse">
             <div className="w-full h-48 bg-gray-200 rounded-t-lg mb-4"></div>
@@ -45,7 +45,7 @@ const EventList: React.FC<EventListProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 fade-in">
       {events.map((event) => (
         <EventCard
           key={event.id}
