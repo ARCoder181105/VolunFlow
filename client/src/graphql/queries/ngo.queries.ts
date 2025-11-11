@@ -1,33 +1,5 @@
 import { gql } from '@apollo/client';
 
-export const GET_NGO_BY_SLUG_QUERY = gql`
-  query GetNgoBySlug($slug: String!) {
-    getNgoBySlug(slug: $slug) {
-      id
-      name
-      slug
-      description
-      logoUrl
-      website
-      contactEmail
-      events {
-        id
-        title
-        date
-        location
-        tags
-        imageUrl
-      }
-      badges {
-        id
-        name
-        description
-        imageUrl
-      }
-    }
-  }
-`;
-
 export const MY_NGO_QUERY = gql`
   query MyNgo {
     myNgo {
@@ -61,6 +33,34 @@ export const MY_NGO_QUERY = gql`
         city
         latitude
         longitude
+      }
+    }
+  }
+`;
+
+export const GET_NGO_BY_SLUG_QUERY = gql`
+  query GetNgoBySlug($slug: String!) {
+    getNgoBySlug(slug: $slug) {
+      id
+      name
+      slug
+      description
+      logoUrl
+      website
+      contactEmail
+      events {
+        id
+        title
+        date
+        location
+        tags
+        imageUrl
+      }
+      badges {
+        id
+        name
+        description
+        imageUrl
       }
     }
   }

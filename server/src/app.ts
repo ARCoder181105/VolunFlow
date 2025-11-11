@@ -1,16 +1,16 @@
-import express, { Router } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import cookieParser from 'cookie-parser';
-import passport from './config/passport.js';
+import express, { Router } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
+import passport from "./config/passport.js";
 
 // --- Apollo Server Imports ---
-import { createApolloGraphQLMiddleware } from './config/apollo.js';
+import { createApolloGraphQLMiddleware } from "./config/apollo.js";
 
 // --- REST Route Imports ---
-import authRoutes from './rest/auth.routes.js';
-import uploadRoutes from './rest/upload.routes.js';
+import authRoutes from "./rest/auth.routes.js";
+import uploadRoutes from "./rest/upload.routes.js";
 
 // Create the Express app instance
 const app = express();
@@ -21,8 +21,15 @@ const app = express();
  */
 export async function setupServer() {
   // --- Core Middleware ---
-  app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
-  
+  app.use(
+    cors({
+      origin: "http://localhost:5173", // Your React app URL
+      credentials: true, // Important for cookies
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    })
+  );
+
   // Configure Helmet to allow Apollo Sandbox in development
   // app.use(
   //   helmet({
@@ -35,8 +42,8 @@ export async function setupServer() {
   //     },
   //   })
   // );
-  
-  app.use(morgan('dev'));
+
+  app.use(morgan("dev"));
   app.use(express.json());
   app.use(cookieParser());
   app.use(passport.initialize());
@@ -45,17 +52,17 @@ export async function setupServer() {
   const apiV1Router = Router();
 
   // Mount REST routes
-  apiV1Router.use('/auth', authRoutes);
-  apiV1Router.use('/upload', uploadRoutes);
+  apiV1Router.use("/auth", authRoutes);
+  apiV1Router.use("/upload", uploadRoutes);
 
   // Mount GraphQL Server
-  apiV1Router.use('/graphql', await createApolloGraphQLMiddleware());
+  apiV1Router.use("/graphql", await createApolloGraphQLMiddleware());
 
   // --- Mount the main API router ---
-  app.use('/api/v1', apiV1Router);
+  app.use("/api/v1", apiV1Router);
 
   // --- Health Check ---
-  app.get('/ping', (req, res) => res.status(200).json({ message: 'pong! 🏓' }));
+  app.get("/ping", (req, res) => res.status(200).json({ message: "pong! 🏓" }));
 
   // Return the configured app
   return app;
