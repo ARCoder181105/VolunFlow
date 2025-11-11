@@ -16,6 +16,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import EventDetailsPage from './pages/EventDetailsPage';
 import CreateBadgePage from './pages/CreateBadgePage';
+import NgoDetailsPage from './pages/NgoDetailsPage';
 import './styles/globals.css';
 
 function App() {
@@ -70,6 +71,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/ngo/:slug" element={<ProtectedRoute><NgoDetailsPage /></ProtectedRoute>} />
                 <Route
                   path="/profile"
                   element={

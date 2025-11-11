@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { Search, Filter, Plus, Building, Users } from 'lucide-react';
-import { MY_NGO_QUERY } from '../graphql/queries/ngo.queries';
+import { MY_NGO_QUERY, GET_ALL_NGOS_QUERY } from '../graphql/queries/ngo.queries';
 import { CREATE_NGO_MUTATION } from '../graphql/mutations/ngo.mutations';
 import type { NGO } from '../types/ngo.types';
 import { useAuth } from '../hooks/useAuth';
@@ -26,6 +26,16 @@ const NGOPage: React.FC = () => {
     skip: !user || user.role !== 'NGO_ADMIN',
   });
 
+  // Fetch all NGOs (for Browse view)
+  const {
+    data: allNgosData,
+    loading: allNgosLoading,
+    error: allNgosError,
+    refetch: refetchAllNgos
+  } = useQuery(GET_ALL_NGOS_QUERY, {
+    skip: activeView !== 'browse', // only fetch when browsing
+  });
+
   const [createNgo, { loading: createLoading, error: createError }] = useMutation(CREATE_NGO_MUTATION, {
     onCompleted: () => {
       refetchMyNgo();
@@ -38,9 +48,12 @@ const NGOPage: React.FC = () => {
 
   const isNgoAdmin = user?.role === 'NGO_ADMIN';
   const userNgo = myNgoData?.myNgo;
-
-  // All NGOs (for browse view, you can later replace this with a FETCH_ALL_NGOS_QUERY)
-  const ngos = userNgo ? [userNgo] : [];
+  const ngos =
+    activeView === 'browse'
+      ? allNgosData?.getAllNgos || []
+      : userNgo
+      ? [userNgo]
+      : [];
 
   // Filter NGOs based on search and category
   const filteredNgos = ngos.filter((ngo: NGO) => {
@@ -78,7 +91,8 @@ const NGOPage: React.FC = () => {
     console.log('Edit NGO clicked');
   };
 
-  if (myNgoLoading) {
+  // Loading states
+  if (myNgoLoading || (allNgosLoading && activeView === 'browse')) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
@@ -88,7 +102,31 @@ const NGOPage: React.FC = () => {
     );
   }
 
+  // Error handling
   if (myNgoError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Building className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-red-800 mb-2">Unable to Load Your NGO</h2>
+              <p className="text-red-700 mb-4">
+                There was a problem connecting to the server. Please check your connection and try again.
+              </p>
+              <button onClick={() => refetchMyNgo()} className="btn-primary">
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (allNgosError && activeView === 'browse') {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
@@ -101,7 +139,7 @@ const NGOPage: React.FC = () => {
               <p className="text-red-700 mb-4">
                 There was a problem connecting to the server. Please check your connection and try again.
               </p>
-              <button onClick={() => refetchMyNgo()} className="btn-primary">
+              <button onClick={() => refetchAllNgos()} className="btn-primary">
                 Try Again
               </button>
             </div>

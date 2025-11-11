@@ -65,3 +65,41 @@ export const GET_NGO_BY_SLUG_QUERY = gql`
     }
   }
 `;
+
+export const GET_ALL_NGOS_QUERY = gql`
+  query GetAllNgos {
+    getAllNgos {
+      id
+      name
+      slug
+      description
+      logoUrl
+      website
+      contactEmail
+      events {
+        id
+        title
+        description
+        date
+        location
+        tags
+        imageUrl
+        maxVolunteers
+      }
+      badges {
+        id
+        name
+        description
+        imageUrl
+        criteria
+      }
+      branches {
+        id
+        address
+        city
+        latitude
+        longitude
+      }
+    }
+  }
+`;
