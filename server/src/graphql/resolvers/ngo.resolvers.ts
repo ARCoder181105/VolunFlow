@@ -30,9 +30,22 @@ export const ngoResolvers = {
       return prisma.nGO.findUnique({
         where: { id: user!.adminOfNgoId! },
         include: {
-          events: { orderBy: { date: 'desc' } },
+          events: { orderBy: { date: "desc" } },
           branches: true,
           badges: true,
+        },
+      });
+    },
+    // Add to your Query resolvers in ngo.resolvers.ts
+    getAllNgos: async () => {
+      return prisma.nGO.findMany({
+        include: {
+          events: {
+            orderBy: { date: "desc" },
+            take: 5, // Limit events to prevent overfetching
+          },
+          badges: true,
+          branches: true,
         },
       });
     },
@@ -74,7 +87,7 @@ export const ngoResolvers = {
 
       return newNgo;
     },
-    
+
     updateNgoProfile: async (
       _: any,
       { input }: { input: UpdateNgoInput },
@@ -87,7 +100,10 @@ export const ngoResolvers = {
 
       // If the name is being updated, we must also update the slug
       if (input.name) {
-        dataToUpdate.slug = (slugify as any)(input.name, { lower: true, strict: true });
+        dataToUpdate.slug = (slugify as any)(input.name, {
+          lower: true,
+          strict: true,
+        });
       }
 
       return prisma.nGO.update({
@@ -115,7 +131,7 @@ export const ngoResolvers = {
           await tx.user.update({
             where: { id: adminId },
             data: {
-              role: 'VOLUNTEER',
+              role: "VOLUNTEER",
               adminOfNgoId: null,
             },
           });

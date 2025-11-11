@@ -1,0 +1,122 @@
+import React from 'react';
+import { Calendar, MapPin, Users } from 'lucide-react';
+import type { Event } from '../../types/event.types';
+import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+
+interface EventCardProps {
+  event: Event;
+  onSignUp?: (eventId: string) => void;
+  onCancel?: (eventId: string) => void;
+  userSignups?: string[];
+  showActions?: boolean;
+}
+
+const EventCard: React.FC<EventCardProps> = ({ 
+  event, 
+  onSignUp, 
+  onCancel, 
+  userSignups = [], 
+  showActions = true 
+}) => {
+  const isSignedUp = userSignups.includes(event.id);
+  const eventDate = new Date(event.date);
+  const isPastEvent = eventDate < new Date();
+  // Safe handling for tags - use empty array if undefined
+  const eventTags = event.tags || [];
+
+  return (
+    <div className="card hover:shadow-lg transition-all duration-300">
+      {event.imageUrl && (
+        <img
+          src={event.imageUrl}
+          alt={event.title}
+          className="w-full h-48 object-cover rounded-t-lg mb-4"
+        />
+      )}
+      
+      <div className="flex flex-col h-full">
+        <div className="grow">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+            <Link 
+              to={`/events/${event.id}`}
+              className="hover:text-blue-600 transition-colors"
+            >
+              {event.title}
+            </Link>
+          </h3>
+          
+          <p className="text-gray-600 mb-4 line-clamp-3">
+            {event.description}
+          </p>
+
+          <div className="space-y-2 mb-4">
+            <div className="flex items-center text-gray-500">
+              <Calendar className="w-4 h-4 mr-2" />
+              <span className="text-sm">
+                {format(eventDate, 'MMM dd, yyyy • hh:mm a')}
+              </span>
+            </div>
+            
+            <div className="flex items-center text-gray-500">
+              <MapPin className="w-4 h-4 mr-2" />
+              <span className="text-sm">{event.location}</span>
+            </div>
+
+            {event.maxVolunteers && (
+              <div className="flex items-center text-gray-500">
+                <Users className="w-4 h-4 mr-2" />
+                <span className="text-sm">
+                  {event.maxVolunteers} volunteers max
+                </span>
+              </div>
+            )}
+          </div>
+
+          {eventTags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-4">
+              {eventTags.slice(0, 3).map((tag, index) => (
+                <span
+                  key={index}
+                  className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {showActions && !isPastEvent && (
+          <div className="mt-4">
+            {isSignedUp ? (
+              <button
+                onClick={() => onCancel?.(event.id)}
+                className="w-full btn-secondary text-red-600 border-red-300 hover:bg-red-50"
+              >
+                Cancel Registration
+              </button>
+            ) : (
+              <button
+                onClick={() => onSignUp?.(event.id)}
+                className="w-full btn-primary"
+              >
+                Sign Up
+              </button>
+            )}
+          </div>
+        )}
+
+        {isPastEvent && (
+          <div className="mt-4">
+            <span className="inline-block w-full text-center px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm">
+              Event Completed
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default EventCard;

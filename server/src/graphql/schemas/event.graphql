@@ -45,6 +45,9 @@ extend type Query {
 
   "Fetches the list of volunteers who have signed up for a specific event."
   getEventAttendees(eventId: ID!): [User]!
+
+  "Fetches detailed information for a specific event"
+  getEventDetails(eventId: ID!): Event
 }
 
 # --- Mutations ---

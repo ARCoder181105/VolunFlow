@@ -1,12 +1,16 @@
 import { GraphQLError } from "graphql";
 import prisma from "../../services/prisma.service.js";
-import { MyContext, CreateEventInput, UpdateEventInput } from "../../types/context.types.js";
+import {
+  MyContext,
+  CreateEventInput,
+  UpdateEventInput,
+} from "../../types/context.types.js";
 import { Prisma, User } from "@prisma/client";
 import { GoogleGenAI } from "@google/genai";
 
 // --- AI Setup ---
 const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenAI({apiKey})
+const genAI = new GoogleGenAI({ apiKey });
 
 const checkIsNgoAdmin = (user: MyContext["user"]) => {
   if (!user) {
@@ -21,7 +25,10 @@ const checkIsNgoAdmin = (user: MyContext["user"]) => {
   }
 };
 
-const checkAdminOwnsEvent = async (user: MyContext["user"], eventId: string) => {
+const checkAdminOwnsEvent = async (
+  user: MyContext["user"],
+  eventId: string
+) => {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event || event.ngoId !== user?.adminOfNgoId) {
     throw new GraphQLError("You can only modify events for your own NGO.", {
@@ -68,6 +75,31 @@ export const eventResolvers = {
 
       return signups.map((signup) => signup.user);
     },
+    getEventDetails: async (_: any, { eventId }: { eventId: string }) => {
+      return prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+          ngo: {
+            select: {
+              id: true,
+              name: true,
+              logoUrl: true,
+            },
+          },
+          signups: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    },
   },
 
   Mutation: {
@@ -83,8 +115,8 @@ export const eventResolvers = {
 
       return prisma.event.create({
         data: {
-          ...rest, 
-          date: new Date(date), 
+          ...rest,
+          date: new Date(date),
           ngoId: user!.adminOfNgoId!,
         },
       });
@@ -102,7 +134,7 @@ export const eventResolvers = {
       const { date, ...rest } = input;
       const dataToUpdate: Prisma.EventUpdateInput = {
         ...rest,
-        ...(date && { date: new Date(date) }), 
+        ...(date && { date: new Date(date) }),
       };
 
       return prisma.event.update({
@@ -144,9 +176,9 @@ export const eventResolvers = {
 
       try {
         const result = await genAI.models.generateContent({
-          model:"gemini-pro",
-          contents:prompt
-        })
+          model: "gemini-pro",
+          contents: prompt,
+        });
         const text = result?.text ?? "";
 
         if (!text.trim()) {
@@ -155,13 +187,15 @@ export const eventResolvers = {
             extensions: { code: "INTERNAL_SERVER_ERROR" },
           });
         }
-        
+
         // Clean up the AI response just in case it includes markdown
-        const jsonText = text.replace(/```json/g, "").replace(/```/g, "").trim();
-        
+        const jsonText = text
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+
         const tags: string[] = JSON.parse(jsonText);
         return tags;
-
       } catch (error) {
         console.error("AI Tag Generation Failed:", error);
         throw new GraphQLError("Failed to generate tags.", {
