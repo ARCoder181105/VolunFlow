@@ -31,3 +31,13 @@ export interface CreateEventInput {
   imageUrl?: string;
   maxVolunteers?: number;
 }
+
+// --- Query Response Types ---
+
+export interface EventDetailsData {
+  getEventDetails: Event;
+}
+
+export interface AllEventsData {
+  getAllEvents: Event[];
+}

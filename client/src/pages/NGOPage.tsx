@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { Search, Filter, Plus, Building, Users } from 'lucide-react';
 import { MY_NGO_QUERY, GET_ALL_NGOS_QUERY } from '../graphql/queries/ngo.queries';
 import { CREATE_NGO_MUTATION } from '../graphql/mutations/ngo.mutations';
-import type { NGO } from '../types/ngo.types';
+import type { NGO, MyNgoData, AllNgosData, CreateNgoInput } from '../types/ngo.types'; // Import from types
 import { useAuth } from '../hooks/useAuth';
 import NgoCard from '../components/ngo/NgoCard';
 import NgoForm from '../components/ngo/NgoForm';
@@ -22,7 +22,7 @@ const NGOPage: React.FC = () => {
     loading: myNgoLoading,
     error: myNgoError,
     refetch: refetchMyNgo
-  } = useQuery(MY_NGO_QUERY, {
+  } = useQuery<MyNgoData>(MY_NGO_QUERY, {
     skip: !user || user.role !== 'NGO_ADMIN',
   });
 
@@ -32,7 +32,7 @@ const NGOPage: React.FC = () => {
     loading: allNgosLoading,
     error: allNgosError,
     refetch: refetchAllNgos
-  } = useQuery(GET_ALL_NGOS_QUERY, {
+  } = useQuery<AllNgosData>(GET_ALL_NGOS_QUERY, {
     skip: activeView !== 'browse', // only fetch when browsing
   });
 
@@ -77,9 +77,9 @@ const NGOPage: React.FC = () => {
         ngo.badges?.map(badge => badge.name) || []
       )
     )
-  );
+  ) as string[]; // FIX: Cast to string[] to resolve map errors
 
-  const handleCreateNgo = async (input: any) => {
+  const handleCreateNgo = async (input: CreateNgoInput) => { // Use CreateNgoInput type
     try {
       await createNgo({ variables: { input } });
     } catch (error) {

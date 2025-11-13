@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { User, Upload, Camera, Loader2 } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { User, Camera, Loader2 } from 'lucide-react';
+// import { useAuth } from '../../hooks/useAuth';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long'),

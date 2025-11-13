@@ -34,3 +34,13 @@ export interface UserProfile extends User {
     };
   }>;
 }
+
+// --- Query Response Types ---
+
+export interface MeData {
+  me: User | null;
+}
+
+export interface MyProfileData {
+  myProfile: UserProfile;
+}

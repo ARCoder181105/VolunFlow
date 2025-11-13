@@ -1,4 +1,5 @@
 import type { Badge } from "./badge.types";
+import type { Event } from "./event.types"; // Import main Event type
 
 export interface NGO {
   id: string;
@@ -8,12 +9,12 @@ export interface NGO {
   logoUrl?: string;
   website?: string;
   contactEmail: string;
-  events?: NgoEvent[];
+  events?: Event[]; // Use main Event type
   branches?: Branch[];
   badges?: Badge[];
 }
 
-// Make NgoEvent compatible with the main Event type
+// This interface is now consistent with the main Event type
 export interface NgoEvent {
   id: string;
   title: string;
@@ -42,4 +43,20 @@ export interface CreateNgoInput {
   name: string;
   description: string;
   contactEmail: string;
+  logoUrl?: string; // Made optional
+  website?: string; // Added
+}
+
+// --- Query Response Types ---
+
+export interface MyNgoData {
+  myNgo: NGO;
+}
+
+export interface NgoBySlugData {
+  getNgoBySlug: NGO;
+}
+
+export interface AllNgosData {
+  getAllNgos: NGO[];
 }

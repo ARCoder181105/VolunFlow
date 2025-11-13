@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { ME_QUERY } from "../graphql/queries/user.queries";
 import { LOGOUT_MUTATION } from "../graphql/mutations/auth.mutations";
-import type { User } from "../types/user.types";
+import type { User, MeData } from "../types/user.types"; // Import MeData
 
 interface AuthContextType {
   user: User | null;
@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const { data, loading: queryLoading, refetch } = useQuery<{ me: User | null }>(ME_QUERY);
+  const { data, loading: queryLoading, refetch } = useQuery<MeData>(ME_QUERY); // Use MeData generic
   const [logoutMutation] = useMutation(LOGOUT_MUTATION);
 
   useEffect(() => {

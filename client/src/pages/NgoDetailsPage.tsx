@@ -5,11 +5,12 @@ import { GET_NGO_BY_SLUG_QUERY } from '../graphql/queries/ngo.queries';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import NgoProfile from '../components/ngo/NgoProfile';
 import { Building } from 'lucide-react';
+import type { NgoBySlugData } from '../types/ngo.types'; // Import from types
 
 const NgoDetailsPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
 
-  const { data, loading, error, refetch } = useQuery(GET_NGO_BY_SLUG_QUERY, {
+  const { data, loading, error, refetch } = useQuery<NgoBySlugData>(GET_NGO_BY_SLUG_QUERY, {
     variables: { slug: slug! },
     skip: !slug,
   });

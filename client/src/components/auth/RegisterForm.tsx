@@ -32,7 +32,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, loading }) => {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });

@@ -3,14 +3,14 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { User, Mail, Calendar, Award, Edit3 } from 'lucide-react';
 import { MY_PROFILE_QUERY } from '../graphql/queries/user.queries';
 import { UPDATE_USER_MUTATION } from '../graphql/mutations/user.mutations';
-import type { UserProfile } from '../types/user.types';
+import type { MyProfileData } from '../types/user.types'; // Import from types
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EditProfileForm from '../components/auth/EditProfileForm';
 import { format } from 'date-fns';
 
 const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const { data, loading, error, refetch } = useQuery<{ myProfile: UserProfile }>(MY_PROFILE_QUERY);
+  const { data, loading, error, refetch } = useQuery<MyProfileData>(MY_PROFILE_QUERY);
   
   const [updateUser, { loading: updateLoading }] = useMutation(UPDATE_USER_MUTATION, {
     onCompleted: () => {

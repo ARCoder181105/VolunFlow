@@ -2,19 +2,22 @@ import React from 'react';
 import { useQuery } from '@apollo/client/react';
 import { Users, Calendar, Award, Plus } from 'lucide-react';
 import { MY_NGO_QUERY } from '../../graphql/queries/ngo.queries';
-import type { NGO } from '../../types/ngo.types';
+import type { MyNgoData } from '../../types/ngo.types'; // Import from types
 import LoadingSpinner from '../common/LoadingSpinner';
 import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
-  const { data, loading, error } = useQuery<{ myNgo: NGO }>(MY_NGO_QUERY);
+  const { data, loading, error } = useQuery<MyNgoData>(MY_NGO_QUERY);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <div>Error loading NGO data</div>;
 
   const ngo = data?.myNgo;
   const upcomingEvents = ngo?.events?.filter(event => new Date(event.date) > new Date()) || [];
-  const totalVolunteers = new Set(ngo?.events?.flatMap(event => event.signups?.map(s => s.userId) || [])).size;
+  
+  // FIX: Correctly calculate total unique volunteers
+  const allSignups = ngo?.events?.flatMap(event => event.signups || []) || [];
+  const totalVolunteers = new Set(allSignups.map(s => s.user.id)).size;
 
   return (
     <div className="space-y-8">

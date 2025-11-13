@@ -2,12 +2,12 @@ import React from 'react';
 import { useQuery } from '@apollo/client/react';
 import { Calendar, Award, TrendingUp } from 'lucide-react';
 import { MY_PROFILE_QUERY } from '../../graphql/queries/user.queries';
-import type { UserProfile } from '../../types/user.types';
+import type { MyProfileData } from '../../types/user.types'; // Import from types
 import LoadingSpinner from '../common/LoadingSpinner';
 // import EventCard from '../events/EventCard';
 
 const VolunteerDashboard: React.FC = () => {
-  const { data, loading, error } = useQuery<{ myProfile: UserProfile }>(MY_PROFILE_QUERY);
+  const { data, loading, error } = useQuery<MyProfileData>(MY_PROFILE_QUERY);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <div>Error loading dashboard</div>;

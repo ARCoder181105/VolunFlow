@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Building, MapPin, Mail, Globe, Calendar, Award, Edit3 } from 'lucide-react';
-import type { NGO, NgoEvent } from '../../types/ngo.types';
+import type { NGO } from '../../types/ngo.types';
+import type { Event } from '../../types/event.types'; // Import main Event type
 import EventCard from '../events/EventCard';
 import BadgeCard from '../badges/BadgeCard';
 
@@ -23,7 +24,7 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'events' | 'badges' | 'branches'>('events');
 
-  const upcomingEvents = ngo.events?.filter((event: NgoEvent) => {
+  const upcomingEvents = ngo.events?.filter((event: Event) => { // Use main Event type
     try {
       return new Date(event.date) > new Date();
     } catch {
@@ -31,7 +32,7 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
     }
   }) || [];
 
-  const pastEvents = ngo.events?.filter((event: NgoEvent) => {
+  const pastEvents = ngo.events?.filter((event: Event) => { // Use main Event type
     try {
       return new Date(event.date) <= new Date();
     } catch {
@@ -175,7 +176,7 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
                   {upcomingEvents.map((event) => (
                     <EventCard
                       key={event.id}
-                      event={event as any} // Temporary fix - cast to any to avoid type issues
+                      event={event} // No cast needed
                       onSignUp={onEventSignUp}
                       onCancel={onEventCancel}
                       userSignups={userSignups}
@@ -193,7 +194,7 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
                   {pastEvents.map((event) => (
                     <EventCard
                       key={event.id}
-                      event={event as any} // Temporary fix
+                      event={event} // No cast needed
                       showActions={false}
                     />
                   ))}
