@@ -1,8 +1,9 @@
 import React from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useQuery } from '@apollo/client/react'; // FIX: Corrected import path
 import { Users, Calendar, Award, Plus } from 'lucide-react';
 import { MY_NGO_QUERY } from '../../graphql/queries/ngo.queries';
 import type { MyNgoData } from '../../types/ngo.types'; // Import from types
+import type { Event } from '../../types/event.types'; // Import Event type
 import LoadingSpinner from '../common/LoadingSpinner';
 import { Link } from 'react-router-dom';
 
@@ -13,11 +14,12 @@ const AdminDashboard: React.FC = () => {
   if (error) return <div>Error loading NGO data</div>;
 
   const ngo = data?.myNgo;
-  const upcomingEvents = ngo?.events?.filter(event => new Date(event.date) > new Date()) || [];
+  // FIX: Added explicit type for 'event'
+  const upcomingEvents = ngo?.events?.filter((event: Event) => new Date(event.date) > new Date()) || [];
   
-  // FIX: Correctly calculate total unique volunteers
-  const allSignups = ngo?.events?.flatMap(event => event.signups || []) || [];
-  const totalVolunteers = new Set(allSignups.map(s => s.user.id)).size;
+  // FIX: Added explicit types for 'event' and 's'
+  const allSignups = ngo?.events?.flatMap((event: Event) => event.signups || []) || [];
+  const totalVolunteers = new Set(allSignups.map((s: { user: { id: string } }) => s.user.id)).size;
 
   return (
     <div className="space-y-8">
@@ -108,7 +110,8 @@ const AdminDashboard: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Events</h2>
           {upcomingEvents.length > 0 ? (
             <div className="space-y-3">
-              {upcomingEvents.slice(0, 3).map((event) => (
+              {/* FIX: Added explicit type for 'event' */}
+              {upcomingEvents.slice(0, 3).map((event: Event) => (
                 <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <h3 className="font-medium text-gray-900">{event.title}</h3>

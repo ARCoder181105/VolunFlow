@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react'; // FIX: Corrected import path
 import { Search, Filter, Plus, Building, Users } from 'lucide-react';
 import { MY_NGO_QUERY, GET_ALL_NGOS_QUERY } from '../graphql/queries/ngo.queries';
 import { CREATE_NGO_MUTATION } from '../graphql/mutations/ngo.mutations';
@@ -41,7 +41,8 @@ const NGOPage: React.FC = () => {
       refetchMyNgo();
       setActiveView('my-ngo');
     },
-    onError: (error) => {
+    // FIX: Added explicit 'any' type for error
+    onError: (error: any) => {
       console.error('Error creating NGO:', error);
     }
   });

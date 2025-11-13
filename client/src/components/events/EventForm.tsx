@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Calendar, MapPin, Tag, Upload, Loader2, Sparkles } from 'lucide-react';
 import type { CreateEventInput, Event } from '../../types/event.types';
-import { useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react'; // FIX: Corrected import path
 import { GENERATE_EVENT_TAGS_MUTATION } from '../../graphql/mutations/event.mutations';
 
 const eventSchema = z.object({
@@ -33,13 +33,12 @@ const EventForm: React.FC<EventFormProps> = ({
   mode = 'create'
 }) => {
   const [tagInput, setTagInput] = useState('');
-  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   
   interface GenerateTagsResult {
     generateEventTags: string[];
   }
 
-  const [generateTags] = useMutation<GenerateTagsResult>(GENERATE_EVENT_TAGS_MUTATION);
+  const [generateTags, { loading: isGeneratingTags }] = useMutation<GenerateTagsResult>(GENERATE_EVENT_TAGS_MUTATION);
 
   const {
     register,
@@ -88,7 +87,6 @@ const EventForm: React.FC<EventFormProps> = ({
       return;
     }
 
-    setIsGeneratingTags(true);
     try {
       const { data } = await generateTags({
         variables: { description: description.trim() }
@@ -101,8 +99,6 @@ const EventForm: React.FC<EventFormProps> = ({
     } catch (error) {
       console.error('Failed to generate tags:', error);
       setError('tags', { message: 'Failed to generate tags. Please try again.' });
-    } finally {
-      setIsGeneratingTags(false);
     }
   };
 

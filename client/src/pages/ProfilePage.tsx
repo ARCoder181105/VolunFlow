@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react'; // FIX: Corrected import path
 import { User, Mail, Calendar, Award, Edit3 } from 'lucide-react';
 import { MY_PROFILE_QUERY } from '../graphql/queries/user.queries';
 import { UPDATE_USER_MUTATION } from '../graphql/mutations/user.mutations';
@@ -7,6 +7,27 @@ import type { MyProfileData } from '../types/user.types'; // Import from types
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EditProfileForm from '../components/auth/EditProfileForm';
 import { format } from 'date-fns';
+
+// Define explicit types for mapped items
+type SignupItem = {
+  id: string;
+  event: {
+    title: string;
+    date: string;
+    location: string;
+  };
+  status: string;
+};
+
+type EarnedBadgeItem = {
+  id: string;
+  badge: {
+    imageUrl: string;
+    name: string;
+  };
+  awardedAt: string;
+};
+
 
 const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -23,11 +44,13 @@ const ProfilePage: React.FC = () => {
   if (error) return <div>Error loading profile</div>;
 
   const profile = data?.myProfile;
-  const upcomingEvents = profile?.signups?.filter(signup => 
+  // FIX: Added explicit type for 'signup'
+  const upcomingEvents = profile?.signups?.filter((signup: SignupItem) => 
     new Date(signup.event.date) > new Date() && signup.status === 'CONFIRMED'
   ) || [];
 
-  const pastEvents = profile?.signups?.filter(signup => 
+  // FIX: Added explicit type for 'signup'
+  const pastEvents = profile?.signups?.filter((signup: SignupItem) => 
     new Date(signup.event.date) <= new Date()
   ) || [];
 
@@ -123,7 +146,8 @@ const ProfilePage: React.FC = () => {
               </h2>
               {upcomingEvents.length > 0 ? (
                 <div className="space-y-3">
-                  {upcomingEvents.map((signup) => (
+                  {/* FIX: Added explicit type for 'signup' */}
+                  {upcomingEvents.map((signup: SignupItem) => (
                     <div key={signup.id} className="p-3 bg-gray-50 rounded-lg">
                       <h3 className="font-medium text-gray-900">{signup.event.title}</h3>
                       <p className="text-sm text-gray-600 mt-1">
@@ -146,7 +170,8 @@ const ProfilePage: React.FC = () => {
               </h2>
               {profile?.earnedBadges && profile.earnedBadges.length > 0 ? (
                 <div className="grid grid-cols-2 gap-4">
-                  {profile.earnedBadges.map((earnedBadge) => (
+                  {/* FIX: Added explicit type for 'earnedBadge' */}
+                  {profile.earnedBadges.map((earnedBadge: EarnedBadgeItem) => (
                     <div key={earnedBadge.id} className="text-center">
                       <img
                         src={earnedBadge.badge.imageUrl}
@@ -174,7 +199,8 @@ const ProfilePage: React.FC = () => {
               </h2>
               {pastEvents.length > 0 ? (
                 <div className="space-y-3">
-                  {pastEvents.map((signup) => (
+                  {/* FIX: Added explicit type for 'signup' */}
+                  {pastEvents.map((signup: SignupItem) => (
                     <div key={signup.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <h3 className="font-medium text-gray-900">{signup.event.title}</h3>

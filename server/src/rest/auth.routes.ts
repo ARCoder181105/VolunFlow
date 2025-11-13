@@ -19,9 +19,9 @@ const setAuthCookies = (
   accessToken: string,
   refreshToken: string
 ) => {
-  // Correctly calculate maxAge in milliseconds
-  const accessTokenMaxAge = Number(process.env.ACCESS_TOKEN_EXPIRY ?? 86400000); // 1 day
-  const refreshTokenMaxAge = Number(process.env.REFRESH_TOKEN_EXPIRY ?? 604800000); // 7 days
+  // FIX: Use || to fall back to the default if Number() results in NaN
+  const accessTokenMaxAge = Number(process.env.ACCESS_TOKEN_EXPIRY) || 86400000; // 1 day
+  const refreshTokenMaxAge = Number(process.env.REFRESH_TOKEN_EXPIRY) || 604800000; // 7 days
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,

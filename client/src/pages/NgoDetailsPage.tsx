@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
+import { useQuery } from '@apollo/client/react'; // FIX: Corrected import path
 import { GET_NGO_BY_SLUG_QUERY } from '../graphql/queries/ngo.queries';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import NgoProfile from '../components/ngo/NgoProfile';

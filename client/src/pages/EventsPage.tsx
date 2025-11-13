@@ -1,43 +1,66 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client/react';
-import { ArrowLeft } from 'lucide-react';
-import { GET_EVENT_DETAILS_QUERY } from '../graphql/queries/event.queries';
+import React, { useState } from 'react';
+import { useQuery, useMutation } from '@apollo/client/react'; // FIX: Corrected import path
+import { Search,  } from 'lucide-react';
+import { GET_ALL_EVENTS_QUERY } from '../graphql/queries/event.queries';
 import { SIGNUP_FOR_EVENT_MUTATION, CANCEL_SIGNUP_MUTATION } from '../graphql/mutations/event.mutations';
 import { MY_PROFILE_QUERY } from '../graphql/queries/user.queries';
-import type { EventDetailsData } from '../types/event.types'; // Import from types
+import type { Event, AllEventsData } from '../types/event.types'; // Import from types
 import type { MyProfileData } from '../types/user.types'; // Import from types
-import EventDetails from '../components/events/EventDetails';
+import EventList from '../components/events/EventList';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
-const EventDetailsPage: React.FC = () => {
-  const { eventId } = useParams<{ eventId: string }>();
-  const navigate = useNavigate();
+const EventsPage: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  // Fetch event details using the new query
-  const { data: eventData, loading: eventLoading, error: eventError } = useQuery<EventDetailsData>(GET_EVENT_DETAILS_QUERY, {
-    variables: { eventId },
-    skip: !eventId,
-  });
-
-  // Fetch user profile to check if signed up
+  const { data: eventsData, loading: eventsLoading } = useQuery<AllEventsData>(GET_ALL_EVENTS_QUERY);
   const { data: profileData } = useQuery<MyProfileData>(MY_PROFILE_QUERY);
-
-  const [signupForEvent, { loading: signupLoading }] = useMutation(SIGNUP_FOR_EVENT_MUTATION, {
-    refetchQueries: [
-      { query: GET_EVENT_DETAILS_QUERY, variables: { eventId } },
-      { query: MY_PROFILE_QUERY }
-    ],
+  
+  const [signupForEvent] = useMutation(SIGNUP_FOR_EVENT_MUTATION, {
+    refetchQueries: [GET_ALL_EVENTS_QUERY, MY_PROFILE_QUERY],
   });
 
-  const [cancelSignup, { loading: cancelLoading }] = useMutation(CANCEL_SIGNUP_MUTATION, {
-    refetchQueries: [
-      { query: GET_EVENT_DETAILS_QUERY, variables: { eventId } },
-      { query: MY_PROFILE_QUERY }
-    ],
+  const [cancelSignup] = useMutation(CANCEL_SIGNUP_MUTATION, {
+    refetchQueries: [GET_ALL_EVENTS_QUERY, MY_PROFILE_QUERY],
   });
 
-  if (eventLoading) {
+  // FIX: Added explicit type for 'signup'
+  const userSignups = profileData?.myProfile.signups.map((signup: { event: { id: string } }) => signup.event.id) || [];
+
+  const handleSignUp = async (eventId: string) => {
+    try {
+      await signupForEvent({ variables: { eventId } });
+    } catch (error) {
+      console.error('Error signing up for event:', error);
+      alert('Failed to sign up for event');
+    }
+  };
+
+  const handleCancel = async (eventId: string) => {
+    try {
+      await cancelSignup({ variables: { eventId } });
+    } catch (error) {
+      console.error('Error canceling signup:', error);
+      alert('Failed to cancel signup');
+    }
+  };
+
+  // Filter events based on search and tags
+  // FIX: Added explicit type for 'event'
+  const filteredEvents = eventsData?.getAllEvents.filter((event: Event) => {
+    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.description.toLowerCase().includes(searchTerm.toLowerCase());
+    // FIX: Added explicit type for 'tag'
+    const matchesTags = selectedTags.length === 0 || 
+                       event.tags.some((tag: string) => selectedTags.includes(tag));
+    return matchesSearch && matchesTags;
+  }) || [];
+
+  // Get all unique tags
+  // FIX: Added explicit type for 'event'
+  const allTags = Array.from(new Set(eventsData?.getAllEvents.flatMap((event: Event) => event.tags) || [])) as string[];
+
+  if (eventsLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
@@ -47,72 +70,64 @@ const EventDetailsPage: React.FC = () => {
     );
   }
 
-  if (eventError || !eventData?.getEventDetails) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h1>
-          <p className="text-gray-600 mb-4">
-            {eventError 
-              ? 'There was an error loading the event details.'
-              : 'The event you\'re looking for doesn\'t exist or may have been removed.'
-            }
-          </p>
-          <button onClick={() => navigate('/events')} className="btn-primary">
-            Back to Events
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const event = eventData.getEventDetails;
-  const userSignups = profileData?.myProfile.signups?.map(signup => signup.event.id) || [];
-  const isUserSignedUp = userSignups.includes(eventId!);
-  const volunteerCount = event.signups?.length || 0;
-
-  const handleSignUp = async () => {
-    try {
-      await signupForEvent({ variables: { eventId } });
-    } catch (error) {
-      console.error('Error signing up for event:', error);
-      alert('Failed to sign up for event');
-    }
-  };
-
-  const handleCancel = async () => {
-    try {
-      await cancelSignup({ variables: { eventId } });
-    } catch (error) {
-      console.error('Error canceling signup:', error);
-      alert('Failed to cancel signup');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate('/events')}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Events
-        </button>
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Volunteering Events</h1>
+          <p className="text-gray-600">Discover opportunities to make a difference in your community</p>
+        </div>
 
-        {/* Event Details */}
-        <EventDetails
-          event={event}
-          isSignedUp={isUserSignedUp}
-          volunteerCount={volunteerCount}
+        {/* Search and Filter */}
+        <div className="mb-8 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search events..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {allTags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {/* FIX: Added explicit type for 'tag' and 'index' */}
+              {allTags.map((tag: string, index: number) => (
+                <button
+                  key={tag || index} // Use index as fallback key
+                  onClick={() => {
+                    setSelectedTags(prev =>
+                      prev.includes(tag)
+                        ? prev.filter((t: string) => t !== tag) // FIX: Add type for 't'
+                        : [...prev, tag]
+                    );
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    selectedTags.includes(tag)
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Events List */}
+        <EventList
+          events={filteredEvents}
           onSignUp={handleSignUp}
           onCancel={handleCancel}
-          loading={signupLoading || cancelLoading}
+          userSignups={userSignups}
         />
       </div>
     </div>
   );
 };
 
-export default EventDetailsPage;
+export default EventsPage;

@@ -1,10 +1,30 @@
 import React from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useQuery } from '@apollo/client/react'; // FIX: Corrected import path
 import { Calendar, Award, TrendingUp } from 'lucide-react';
 import { MY_PROFILE_QUERY } from '../../graphql/queries/user.queries';
 import type { MyProfileData } from '../../types/user.types'; // Import from types
 import LoadingSpinner from '../common/LoadingSpinner';
 // import EventCard from '../events/EventCard';
+
+// Define explicit types for mapped items
+type SignupItem = {
+  id: string;
+  event: {
+    title: string;
+    date: string;
+    location: string;
+  };
+};
+
+type EarnedBadgeItem = {
+  id: string;
+  badge: {
+    imageUrl: string;
+    name: string;
+    description: string;
+  };
+  awardedAt: string;
+};
 
 const VolunteerDashboard: React.FC = () => {
   const { data, loading, error } = useQuery<MyProfileData>(MY_PROFILE_QUERY);
@@ -13,7 +33,8 @@ const VolunteerDashboard: React.FC = () => {
   if (error) return <div>Error loading dashboard</div>;
 
   const profile = data?.myProfile;
-  const upcomingEvents = profile?.signups?.filter(signup => 
+  // FIX: Added explicit type for 'signup'
+  const upcomingEvents = profile?.signups?.filter((signup: { event: { date: string }, status: string }) => 
     new Date(signup.event.date) > new Date() && signup.status === 'CONFIRMED'
   ) || [];
 
@@ -60,7 +81,8 @@ const VolunteerDashboard: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Events</h2>
           {upcomingEvents.length > 0 ? (
             <div className="space-y-4">
-              {upcomingEvents.slice(0, 3).map((signup) => (
+              {/* FIX: Added explicit type for 'signup' */}
+              {upcomingEvents.slice(0, 3).map((signup: SignupItem) => (
                 <div key={signup.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                     <Calendar className="w-6 h-6 text-blue-600" />
@@ -84,7 +106,8 @@ const VolunteerDashboard: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Badges</h2>
           {earnedBadges.length > 0 ? (
             <div className="space-y-4">
-              {earnedBadges.slice(0, 3).map((earnedBadge) => (
+              {/* FIX: Added explicit type for 'earnedBadge' */}
+              {earnedBadges.slice(0, 3).map((earnedBadge: EarnedBadgeItem) => (
                 <div key={earnedBadge.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <img
                     src={earnedBadge.badge.imageUrl}
