@@ -2,15 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Calendar, MapPin, Tag, Upload, Loader2, Sparkles } from 'lucide-react';
+import { Calendar, MapPin, Tag, Upload, Loader2, Sparkles, Image } from 'lucide-react';
 import type { CreateEventInput, Event } from '../../types/event.types';
-import { useMutation } from '@apollo/client/react'; // FIX: Corrected import path
+import { useMutation } from '@apollo/client/react';
 import { GENERATE_EVENT_TAGS_MUTATION } from '../../graphql/mutations/event.mutations';
 
+// *** THIS IS THE FIX ***
 const eventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title is too long'),
   description: z.string().min(10, 'Description must be at least 10 characters').max(1000, 'Description is too long'),
-  date: z.string().min(1, 'Date is required'),
+  // We add a 'refine' check to ensure the string is a parsable date
+  date: z.string()
+    .min(1, 'Date is required')
+    .refine((val) => !isNaN(Date.parse(val)), {
+      message: "Please select a valid date and time",
+    }),
   location: z.string().min(1, 'Location is required'),
   maxVolunteers: z.number().min(1, 'Must be at least 1').optional().or(z.literal('')),
   tags: z.array(z.string()),
@@ -33,7 +39,9 @@ const EventForm: React.FC<EventFormProps> = ({
   mode = 'create'
 }) => {
   const [tagInput, setTagInput] = useState('');
-  
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(event?.imageUrl || '');
+
   interface GenerateTagsResult {
     generateEventTags: string[];
   }
@@ -68,6 +76,48 @@ const EventForm: React.FC<EventFormProps> = ({
       setValue('tags', event.tags || []);
     }
   }, [event, setValue]);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (JPEG, PNG, GIF)');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/upload`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      
+      setValue('imageUrl', data.url);
+      setPreviewUrl(data.url);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleAddTag = () => {
     if (tagInput.trim() && !currentTags.includes(tagInput.trim())) {
@@ -120,6 +170,57 @@ const EventForm: React.FC<EventFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6 max-w-2xl">
+      {/* Event Image Upload */}
+      <div className="text-center">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Event Image (Optional)
+        </label>
+        
+        <div className="relative inline-block w-full max-w-sm">
+          {previewUrl ? (
+            <img
+              src={previewUrl}
+              alt="Event preview"
+              className="w-full aspect-video rounded-lg object-cover border-4 border-white shadow-lg"
+            />
+          ) : (
+            <div 
+              className="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center border-4 border-white shadow-lg"
+            >
+              <Image className="w-16 h-16 text-gray-400" />
+            </div>
+          )}
+          
+          <label
+            htmlFor="image-upload"
+            className="absolute bottom-2 right-2 bg-blue-600 text-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-blue-700 transition-colors"
+          >
+            {uploading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+              disabled={uploading || loading}
+            />
+          </label>
+        </div>
+        
+        <div className="mt-2">
+          <p className="text-xs text-gray-500">
+            JPG, PNG, GIF up to 5MB. Recommended: 16:9 aspect ratio.
+          </p>
+        </div>
+        {errors.imageUrl && (
+          <p className="form-error text-center">{errors.imageUrl.message}</p>
+        )}
+      </div>
+
       {/* Title */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
@@ -130,6 +231,7 @@ const EventForm: React.FC<EventFormProps> = ({
           type="text"
           className="input-field"
           placeholder="Enter event title"
+          disabled={loading}
         />
         {errors.title && (
           <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
@@ -146,6 +248,7 @@ const EventForm: React.FC<EventFormProps> = ({
           rows={4}
           className="input-field resize-vertical"
           placeholder="Describe the event, what volunteers will be doing, and any important details..."
+          disabled={loading}
         />
         {errors.description && (
           <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
@@ -163,8 +266,10 @@ const EventForm: React.FC<EventFormProps> = ({
             {...register('date')}
             type="datetime-local"
             className="input-field pl-10"
+            disabled={loading}
           />
         </div>
+        {/* This error will now show if the date is invalid OR empty */}
         {errors.date && (
           <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
         )}
@@ -182,6 +287,7 @@ const EventForm: React.FC<EventFormProps> = ({
             type="text"
             className="input-field pl-10"
             placeholder="Enter event location"
+            disabled={loading}
           />
         </div>
         {errors.location && (
@@ -200,30 +306,15 @@ const EventForm: React.FC<EventFormProps> = ({
           min="1"
           className="input-field"
           placeholder="Leave empty for unlimited volunteers"
+          disabled={loading}
         />
         {errors.maxVolunteers && (
           <p className="mt-1 text-sm text-red-600">{errors.maxVolunteers.message}</p>
         )}
       </div>
-
-      {/* Image URL */}
-      <div>
-        <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-1">
-          Event Image URL (Optional)
-        </label>
-        <div className="relative">
-          <Upload className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            {...register('imageUrl')}
-            type="url"
-            className="input-field pl-10"
-            placeholder="https://example.com/image.jpg"
-          />
-        </div>
-        {errors.imageUrl && (
-          <p className="mt-1 text-sm text-red-600">{errors.imageUrl.message}</p>
-        )}
-      </div>
+      
+      {/* Hidden imageUrl field */}
+      <input type="hidden" {...register('imageUrl')} />
 
       {/* Tags */}
       <div>
@@ -234,7 +325,7 @@ const EventForm: React.FC<EventFormProps> = ({
           <button
             type="button"
             onClick={handleGenerateTags}
-            disabled={isGeneratingTags}
+            disabled={isGeneratingTags || loading}
             className="flex items-center text-sm text-blue-600 hover:text-blue-500 disabled:opacity-50"
           >
             <Sparkles className="w-4 h-4 mr-1" />
@@ -254,12 +345,14 @@ const EventForm: React.FC<EventFormProps> = ({
                 onKeyPress={handleKeyPress}
                 className="input-field pl-10"
                 placeholder="Add a tag and press Enter"
+                disabled={loading}
               />
             </div>
             <button
               type="button"
               onClick={handleAddTag}
               className="btn-secondary whitespace-nowrap"
+              disabled={loading}
             >
               Add Tag
             </button>
@@ -278,6 +371,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     type="button"
                     onClick={() => handleRemoveTag(tag)}
                     className="ml-2 text-blue-600 hover:text-blue-800"
+                    disabled={loading}
                   >
                     ×
                   </button>
@@ -295,13 +389,18 @@ const EventForm: React.FC<EventFormProps> = ({
       <div className="flex space-x-4 pt-4">
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || uploading}
           className="btn-primary flex items-center justify-center"
         >
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               {mode === 'create' ? 'Creating Event...' : 'Updating Event...'}
+            </>
+          ) : uploading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Uploading Image...
             </>
           ) : (
             mode === 'create' ? 'Create Event' : 'Update Event'
@@ -312,6 +411,7 @@ const EventForm: React.FC<EventFormProps> = ({
           type="button"
           className="btn-secondary"
           onClick={() => window.history.back()}
+          disabled={loading || uploading}
         >
           Cancel
         </button>

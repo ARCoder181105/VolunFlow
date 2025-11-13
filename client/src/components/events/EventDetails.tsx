@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, Users, Clock, Building, Tag } from 'lucide-react';
 import type { Event } from '../../types/event.types';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns'; // 1. Import 'isValid'
 
 interface EventDetailsProps {
   event: Event;
@@ -20,8 +20,12 @@ const EventDetails: React.FC<EventDetailsProps> = ({
   onCancel,
   loading = false
 }) => {
+  // 2. Create and validate the date
   const eventDate = new Date(event.date);
-  const isPastEvent = eventDate < new Date();
+  const isDateValid = isValid(eventDate);
+
+  // 3. Only check if it's in the past if the date is valid
+  const isPastEvent = isDateValid ? eventDate < new Date() : false;
   const isFull = !!event.maxVolunteers && volunteerCount >= event.maxVolunteers;
 
   return (
@@ -44,8 +48,15 @@ const EventDetails: React.FC<EventDetailsProps> = ({
               <div className="flex items-center text-gray-600">
                 <Calendar className="w-5 h-5 mr-3 text-blue-600" />
                 <div>
-                  <p className="font-medium">{format(eventDate, 'EEEE, MMMM do, yyyy')}</p>
-                  <p className="text-sm">{format(eventDate, 'h:mm a')}</p>
+                  {/* 4. Conditionally render the date or a fallback */}
+                  {isDateValid ? (
+                    <>
+                      <p className="font-medium">{format(eventDate, 'EEEE, MMMM do, yyyy')}</p>
+                      <p className="text-sm">{format(eventDate, 'h:mm a')}</p>
+                    </>
+                  ) : (
+                    <p className="font-medium text-red-600">Invalid Date</p>
+                  )}
                 </div>
               </div>
               
@@ -80,7 +91,8 @@ const EventDetails: React.FC<EventDetailsProps> = ({
           </div>
           
           {/* Action Button */}
-          {!isPastEvent && (
+          {/* 5. Add 'isDateValid' check to the button logic */}
+          {!isPastEvent && isDateValid && (
             <div className="lg:pl-6 lg:border-l lg:border-gray-200">
               {isSignedUp ? (
                 <button
@@ -110,6 +122,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({
         </div>
       </div>
 
+      {/* Rest of the component... */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">

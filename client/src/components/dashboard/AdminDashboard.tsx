@@ -12,7 +12,6 @@ const AdminDashboard: React.FC = () => {
 
   if (loading) return <LoadingSpinner />;
   
-  // This will now only catch *real* server errors
   if (error) {
     console.error("AdminDashboard Error:", error);
     return (
@@ -25,8 +24,6 @@ const AdminDashboard: React.FC = () => {
 
   const ngo = data?.myNgo;
 
-  // *** THIS IS THE NEW LOGIC ***
-  // Handle the valid state where the admin has not created an NGO yet
   if (!ngo) {
     return (
       <div className="card text-center">
@@ -40,7 +37,7 @@ const AdminDashboard: React.FC = () => {
           Your NGO profile isn't set up yet. Create one to start managing events and volunteers.
         </p>
         <Link
-          to="/ngo" // Links to the NGOPage, which has the "Create" tab
+          to="/ngo"
           className="btn-primary inline-flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -49,9 +46,6 @@ const AdminDashboard: React.FC = () => {
       </div>
     );
   }
-
-  // --- NGO Data Exists ---
-  // All calculations below are now safe and handle empty arrays
 
   const upcomingEvents = ngo.events?.filter((event: Event) => new Date(event.date) > new Date()) || [];
   
@@ -63,6 +57,7 @@ const AdminDashboard: React.FC = () => {
     <div className="space-y-8">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* ... (stats divs remain unchanged) ... */}
         <div className="card text-center">
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Calendar className="w-6 h-6 text-blue-600" />
@@ -109,8 +104,9 @@ const AdminDashboard: React.FC = () => {
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-4">
+            {/* 3. UPDATE THIS LINK */}
             <Link
-              to="/events?action=create"
+              to="/events/create" // <-- CHANGED FROM /events?action=create
               className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition duration-200 hover-raise"
             >
               <Plus className="w-8 h-8 text-blue-600 mx-auto mb-2" />
@@ -124,7 +120,7 @@ const AdminDashboard: React.FC = () => {
               <Award className="w-8 h-8 text-green-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">Create Badge</span>
             </Link>
-
+            {/* ... (other quick actions) ... */}
             <Link
               to="/dashboard?tab=volunteers"
               className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition duration-200 hover-raise"
@@ -143,6 +139,8 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* ... (rest of the file is unchanged) ... */}
+        
         {/* Upcoming Events */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Events</h2>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, Users } from 'lucide-react';
 import type { Event } from '../../types/event.types';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns'; // 1. Import 'isValid'
 import { Link } from 'react-router-dom';
 
 interface EventCardProps {
@@ -20,8 +20,14 @@ const EventCard: React.FC<EventCardProps> = ({
   showActions = true 
 }) => {
   const isSignedUp = userSignups.includes(event.id);
+
+  // 2. Create the date object AND validate it
   const eventDate = new Date(event.date);
-  const isPastEvent = eventDate < new Date();
+  const isDateValid = isValid(eventDate);
+  
+  // 3. Only check if it's in the past if the date is valid
+  const isPastEvent = isDateValid ? eventDate < new Date() : false;
+
   // Safe handling for tags - use empty array if undefined
   const eventTags = event.tags || [];
 
@@ -54,7 +60,10 @@ const EventCard: React.FC<EventCardProps> = ({
             <div className="flex items-center text-gray-500">
               <Calendar className="w-4 h-4 mr-2" />
               <span className="text-sm">
-                {format(eventDate, 'MMM dd, yyyy • hh:mm a')}
+                {/* 4. Conditionally render the date or a fallback */}
+                {isDateValid
+                  ? format(eventDate, 'MMM dd, yyyy • hh:mm a')
+                  : 'Date not specified'}
               </span>
             </div>
             
@@ -87,7 +96,8 @@ const EventCard: React.FC<EventCardProps> = ({
           )}
         </div>
 
-        {showActions && !isPastEvent && (
+        {/* 5. Add 'isDateValid' to the conditional checks */}
+        {showActions && !isPastEvent && isDateValid && (
           <div className="mt-4">
             {isSignedUp ? (
               <button
@@ -107,7 +117,7 @@ const EventCard: React.FC<EventCardProps> = ({
           </div>
         )}
 
-        {isPastEvent && (
+        {isPastEvent && isDateValid && (
           <div className="mt-4">
             <span className="inline-block w-full text-center px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm">
               Event Completed

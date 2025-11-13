@@ -6,7 +6,7 @@ import {
   UpdateEventInput,
 } from "../../types/context.types.js";
 // Import the Prisma 'Event' type
-import { Prisma, User, Event as PrismaEvent } from "@prisma/client";
+import { Prisma, User, Event as PrismaEvent, NGO as NgoPrismaType } from "@prisma/client";
 import { GoogleGenAI } from "@google/genai";
 
 // --- AI Setup ---
@@ -38,6 +38,13 @@ const checkAdminOwnsEvent = async (
   }
 };
 
+// --- Helper type for "smart" resolvers ---
+type EventWithRelations = PrismaEvent & {
+  ngo?: NgoPrismaType;
+  signups?: any[];
+};
+
+
 // --- Resolver Map ---
 export const eventResolvers = {
   Query: {
@@ -45,17 +52,21 @@ export const eventResolvers = {
       return prisma.event.findMany({
         where: { ngoId },
         orderBy: { date: "asc" },
+        include: {
+          ngo: true, 
+        },
       });
     },
+    
+    // *** THIS IS THE FIX ***
     getAllEvents: async () => {
       return prisma.event.findMany({
-        where: {
-          date: {
-            gte: new Date(),
-          },
-        },
+        // REMOVED the 'where' clause that filtered for future dates
         orderBy: {
           date: "asc",
+        },
+        include: {
+          ngo: true, // Eager-load the NGO data the client query requires
         },
       });
     },
@@ -76,14 +87,26 @@ export const eventResolvers = {
 
       return signups.map((signup) => signup.user);
     },
+
     getEventDetails: async (_: any, { eventId }: { eventId: string }) => {
       return prisma.event.findUnique({
         where: { id: eventId },
+        include: {
+          ngo: true, 
+          signups: { 
+            include: {
+              user: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
+        },
       });
     },
   },
 
   Mutation: {
+    // ... (All mutations remain unchanged) ...
     createEvent: async (
       _: any,
       { input }: { input: CreateEventInput },
@@ -157,7 +180,7 @@ export const eventResolvers = {
 
       try {
         const result = await genAI.models.generateContent({
-          model: "gemini-pro",
+          model: "gemini-2.5-flash", 
           contents: prompt,
         });
         const text = result?.text ?? "";
@@ -169,7 +192,6 @@ export const eventResolvers = {
           });
         }
 
-        // Clean up the AI response just in case it includes markdown
         const jsonText = text
           .replace(/```json/g, "")
           .replace(/```/g, "")
@@ -186,25 +208,25 @@ export const eventResolvers = {
     },
   },
 
-  // --- ADD THIS ENTIRE 'Event' OBJECT ---
+  // "Smart" Type Resolvers - check if data was eager-loaded
   Event: {
-    // This resolver runs whenever a query asks for the 'ngo' field on an Event
-    ngo: (parent: PrismaEvent) => {
+    ngo: (parent: EventWithRelations) => {
+      // 1. If 'ngo' was eager-loaded, return it.
+      if (parent.ngo) {
+        return parent.ngo;
+      }
+      // 2. Otherwise, fetch it.
       return prisma.nGO.findUnique({
         where: { id: parent.ngoId },
       });
     },
-
-    // This resolver runs whenever a query asks for the 'signups' field on an Event
-    signups: (parent: PrismaEvent) => {
-      // We check if signups were already eager-loaded by the parent (like in myNgo)
-      // This check isn't strictly necessary with the new 'myNgo' resolver,
-      // but it's good practice for performance.
-      if ((parent as any).signups) {
+    
+    signups: (parent: EventWithRelations) => {
+      // 1. If 'signups' was eager-loaded, return it.
+      if (parent.signups) {
         return (parent as any).signups;
       }
-
-      // If not eager-loaded, fetch them now.
+      // 2. Otherwise, fetch it.
       return prisma.signup.findMany({
         where: { eventId: parent.id },
         include: {
