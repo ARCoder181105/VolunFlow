@@ -31,17 +31,17 @@ export async function setupServer() {
   );
 
   // Configure Helmet to allow Apollo Sandbox in development
-  // app.use(
-  //   helmet({
-  //     contentSecurityPolicy: {
-  //       directives: {
-  //         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-  //         "script-src-attr": ["'unsafe-inline'"],
-  //         "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
-  //       },
-  //     },
-  //   })
-  // );
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "script-src-attr": ["'unsafe-inline'"],
+          "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+        },
+      },
+    })
+  );
 
   app.use(morgan("dev"));
   app.use(express.json());
