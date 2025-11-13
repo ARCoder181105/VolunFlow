@@ -25,7 +25,7 @@ input CreateNgoInput {
   name: String!
   description: String!
   contactEmail: String!
-  logoUrl: String!
+  logoUrl: String # <-- 3. FIX: Changed from String! to String
 }
 
 # Extend the main Query and Mutation types
@@ -43,7 +43,7 @@ extend type Query {
 extend type Mutation {
   "Creates a new NGO and makes the logged-in user its admin."
   createNgo(input: CreateNgoInput!): NGO!
-
+  
   "Updates the profile of the logged-in admin's NGO."
   updateNgoProfile(input: UpdateNgoInput!): NGO!
 

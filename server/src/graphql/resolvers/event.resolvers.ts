@@ -5,7 +5,8 @@ import {
   CreateEventInput,
   UpdateEventInput,
 } from "../../types/context.types.js";
-import { Prisma, User } from "@prisma/client";
+// Import the Prisma 'Event' type
+import { Prisma, User, Event as PrismaEvent } from "@prisma/client";
 import { GoogleGenAI } from "@google/genai";
 
 // --- AI Setup ---
@@ -78,26 +79,6 @@ export const eventResolvers = {
     getEventDetails: async (_: any, { eventId }: { eventId: string }) => {
       return prisma.event.findUnique({
         where: { id: eventId },
-        include: {
-          ngo: {
-            select: {
-              id: true,
-              name: true,
-              logoUrl: true,
-            },
-          },
-          signups: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-        },
       });
     },
   },
@@ -202,6 +183,40 @@ export const eventResolvers = {
           extensions: { code: "INTERNAL_SERVER_ERROR" },
         });
       }
+    },
+  },
+
+  // --- ADD THIS ENTIRE 'Event' OBJECT ---
+  Event: {
+    // This resolver runs whenever a query asks for the 'ngo' field on an Event
+    ngo: (parent: PrismaEvent) => {
+      return prisma.nGO.findUnique({
+        where: { id: parent.ngoId },
+      });
+    },
+
+    // This resolver runs whenever a query asks for the 'signups' field on an Event
+    signups: (parent: PrismaEvent) => {
+      // We check if signups were already eager-loaded by the parent (like in myNgo)
+      // This check isn't strictly necessary with the new 'myNgo' resolver,
+      // but it's good practice for performance.
+      if ((parent as any).signups) {
+        return (parent as any).signups;
+      }
+
+      // If not eager-loaded, fetch them now.
+      return prisma.signup.findMany({
+        where: { eventId: parent.id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
     },
   },
 };

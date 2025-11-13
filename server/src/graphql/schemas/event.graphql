@@ -8,6 +8,8 @@ type Event {
   location: String!
   imageUrl: String
   maxVolunteers: Int
+  ngo: NGO!             # <-- ADD THIS LINE
+  signups: [Signup!]!   # <-- ADD THIS LINE
 }
 
 # --- Inputs ---
@@ -42,10 +44,8 @@ extend type Query {
 
   "Fetches all upcoming events from ALL NGOs for discovery."
   getAllEvents: [Event]!
-
   "Fetches the list of volunteers who have signed up for a specific event."
   getEventAttendees(eventId: ID!): [User]!
-
   "Fetches detailed information for a specific event"
   getEventDetails(eventId: ID!): Event
 }
@@ -58,7 +58,6 @@ extend type Mutation {
 
   "Updates an existing event for the admin's NGO."
   updateEvent(eventId: ID!, input: UpdateEventInput!): Event!
-
   "Deletes an event for the admin's NGO."
   deleteEvent(eventId: ID!): Boolean!
 

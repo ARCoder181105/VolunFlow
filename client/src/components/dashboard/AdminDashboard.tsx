@@ -1,9 +1,9 @@
 import React from 'react';
-import { useQuery } from '@apollo/client/react'; // FIX: Corrected import path
-import { Users, Calendar, Award, Plus } from 'lucide-react';
+import { useQuery } from '@apollo/client/react';
+import { Users, Calendar, Award, Plus, Building } from 'lucide-react';
 import { MY_NGO_QUERY } from '../../graphql/queries/ngo.queries';
-import type { MyNgoData } from '../../types/ngo.types'; // Import from types
-import type { Event } from '../../types/event.types'; // Import Event type
+import type { MyNgoData } from '../../types/ngo.types';
+import type { Event } from '../../types/event.types';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { Link } from 'react-router-dom';
 
@@ -11,14 +11,52 @@ const AdminDashboard: React.FC = () => {
   const { data, loading, error } = useQuery<MyNgoData>(MY_NGO_QUERY);
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <div>Error loading NGO data</div>;
+  
+  // This will now only catch *real* server errors
+  if (error) {
+    console.error("AdminDashboard Error:", error);
+    return (
+      <div className="card text-center bg-red-50 border-red-200">
+        <h3 className="text-xl font-semibold text-red-700">Error loading NGO data</h3>
+        <p className="text-red-600 mt-2">{error.message}</p>
+      </div>
+    );
+  }
 
   const ngo = data?.myNgo;
-  // FIX: Added explicit type for 'event'
-  const upcomingEvents = ngo?.events?.filter((event: Event) => new Date(event.date) > new Date()) || [];
+
+  // *** THIS IS THE NEW LOGIC ***
+  // Handle the valid state where the admin has not created an NGO yet
+  if (!ngo) {
+    return (
+      <div className="card text-center">
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Building className="w-8 h-8 text-blue-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Welcome, Admin!
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Your NGO profile isn't set up yet. Create one to start managing events and volunteers.
+        </p>
+        <Link
+          to="/ngo" // Links to the NGOPage, which has the "Create" tab
+          className="btn-primary inline-flex items-center"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Create Your NGO Profile
+        </Link>
+      </div>
+    );
+  }
+
+  // --- NGO Data Exists ---
+  // All calculations below are now safe and handle empty arrays
+
+  const upcomingEvents = ngo.events?.filter((event: Event) => new Date(event.date) > new Date()) || [];
   
-  // FIX: Added explicit types for 'event' and 's'
-  const allSignups = ngo?.events?.flatMap((event: Event) => event.signups || []) || [];
+  const allSignups = ngo.events?.flatMap((event: Event) => event.signups || []) || [];
+  
   const totalVolunteers = new Set(allSignups.map((s: { user: { id: string } }) => s.user.id)).size;
 
   return (
@@ -30,7 +68,7 @@ const AdminDashboard: React.FC = () => {
             <Calendar className="w-6 h-6 text-blue-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-1">
-            {ngo?.events?.length || 0}
+            {ngo.events?.length || 0}
           </h3>
           <p className="text-gray-600">Total Events</p>
         </div>
@@ -50,7 +88,7 @@ const AdminDashboard: React.FC = () => {
             <Award className="w-6 h-6 text-yellow-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-1">
-            {ngo?.badges?.length || 0}
+            {ngo.badges?.length || 0}
           </h3>
           <p className="text-gray-600">Badge Templates</p>
         </div>
@@ -110,7 +148,6 @@ const AdminDashboard: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Events</h2>
           {upcomingEvents.length > 0 ? (
             <div className="space-y-3">
-              {/* FIX: Added explicit type for 'event' */}
               {upcomingEvents.slice(0, 3).map((event: Event) => (
                 <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
@@ -140,21 +177,21 @@ const AdminDashboard: React.FC = () => {
             <dl className="space-y-2">
               <div>
                 <dt className="text-sm text-gray-600">Name</dt>
-                <dd className="text-gray-900">{ngo?.name}</dd>
+                <dd className="text-gray-900">{ngo.name}</dd>
               </div>
               <div>
                 <dt className="text-sm text-gray-600">Contact Email</dt>
-                <dd className="text-gray-900">{ngo?.contactEmail}</dd>
+                <dd className="text-gray-900">{ngo.contactEmail}</dd>
               </div>
               <div>
                 <dt className="text-sm text-gray-600">Website</dt>
-                <dd className="text-gray-900">{ngo?.website || 'Not provided'}</dd>
+                <dd className="text-gray-900">{ngo.website || 'Not provided'}</dd>
               </div>
             </dl>
           </div>
           <div>
             <h3 className="font-medium text-gray-900 mb-2">Description</h3>
-            <p className="text-gray-600">{ngo?.description}</p>
+            <p className="text-gray-600">{ngo.description}</p>
           </div>
         </div>
       </div>

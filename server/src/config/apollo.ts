@@ -13,6 +13,7 @@ import { signupResolvers } from "../graphql/resolvers/signup.resolvers.js";
 import { badgeResolvers } from "../graphql/resolvers/badge.resolvers.js";
 
 import { MyContext } from "../types/context.types.js";
+import prisma from "../services/prisma.service.js"; // <-- 1. IMPORT PRISMA
 
 // Secret from environment variables
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
@@ -42,16 +43,35 @@ export const createApolloGraphQLMiddleware = async () => {
       const token = req.cookies.accessToken;
       if (token) {
         try {
-          const user = jwt.verify(
+          const payload = jwt.verify(
             token,
             ACCESS_TOKEN_SECRET
-          ) as MyContext["user"] | undefined;
+          ) as { id: string } | undefined;
           
-          if (!user || !user.id) {
+          if (!payload || !payload.id) {
             return {};
           }
 
+          // 2. FETCH THE FULL USER FROM PRISMA
+          const user = await prisma.user.findUnique({
+            where: { id: payload.id },
+            select: { // Select only the fields needed for context
+              id: true,
+              email: true,
+              name: true,
+              avatarUrl: true,
+              role: true,
+              adminOfNgoId: true,
+            },
+          });
+
+          if (!user) {
+            return {};
+          }
+
+          // 3. RETURN THE FULL USER OBJECT
           return { user };
+          
         } catch (error) {
           // Token is invalid or expired
           return {};

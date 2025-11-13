@@ -5,9 +5,11 @@ import React, {
   useEffect,
 } from "react";
 import type { ReactNode } from "react";
-import { useQuery, useMutation } from "@apollo/client/react";
+// Import useQuery, but NOT useMutation
+import { useQuery } from "@apollo/client/react";
 import { ME_QUERY } from "../graphql/queries/user.queries";
-import { LOGOUT_MUTATION } from "../graphql/mutations/auth.mutations";
+// DO NOT import LOGOUT_MUTATION, as it doesn't exist on the server
+// import { LOGOUT_MUTATION } from "../graphql/mutations/auth.mutations"; 
 import type { User, MeData } from "../types/user.types"; // Import MeData
 
 interface AuthContextType {
@@ -35,8 +37,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const { data, loading: queryLoading, refetch } = useQuery<MeData>(ME_QUERY); // Use MeData generic
-  const [logoutMutation] = useMutation(LOGOUT_MUTATION);
+  const { data, loading: queryLoading, refetch } = useQuery<MeData>(ME_QUERY);
+  
+  // REMOVE the useMutation hook for logout
+  // const [logoutMutation] = useMutation(LOGOUT_MUTATION);
 
   useEffect(() => {
     if (data?.me) {
@@ -66,11 +70,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // REWRITE the logout function to use fetch
   const logout = async () => {
     try {
-      await logoutMutation();
+      // Call the REST endpoint instead of the GraphQL mutation
+      await fetch(
+        `${import.meta.env.VITE_API_URL}/auth/logout`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
     } catch (error) {
-      console.error("Logout mutation failed:", error);
+      console.error("Logout fetch failed:", error);
     } finally {
       setUser(null);
       // Clear any remaining cookies

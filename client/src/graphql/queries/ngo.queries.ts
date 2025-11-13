@@ -19,6 +19,11 @@ export const MY_NGO_QUERY = gql`
         tags
         imageUrl
         maxVolunteers
+        signups { 
+          user {
+            id
+          }
+        }
       }
       badges {
         id
