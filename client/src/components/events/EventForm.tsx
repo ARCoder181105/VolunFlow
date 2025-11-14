@@ -11,10 +11,12 @@ import { GENERATE_EVENT_TAGS_MUTATION } from '../../graphql/mutations/event.muta
 const eventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title is too long'),
   description: z.string().min(10, 'Description must be at least 10 characters').max(1000, 'Description is too long'),
-  // Use z.string().datetime() to ensure it's a valid date string
+  // We use .refine() to check if the string can be parsed into a valid date
   date: z.string()
     .min(1, 'Date is required')
-    .datetime({ message: "Please select a valid date and time." }),
+    .refine((val) => !isNaN(Date.parse(val)), {
+      message: "Please select a valid date and time",
+    }),
   location: z.string().min(1, 'Location is required'),
   maxVolunteers: z.number().min(1, 'Must be at least 1').optional().or(z.literal('')),
   tags: z.array(z.string()),
@@ -59,7 +61,6 @@ const EventForm: React.FC<EventFormProps> = ({
     defaultValues: {
       title: event?.title || '',
       description: event?.description || '',
-      // Ensure the default value for 'date' is a valid ISO string snippet or empty
       date: event?.date ? new Date(event.date).toISOString().slice(0, 16) : '',
       location: event?.location || '',
       maxVolunteers: event?.maxVolunteers || '',
@@ -161,7 +162,8 @@ const EventForm: React.FC<EventFormProps> = ({
   const onSubmitForm = (data: EventFormData) => {
     const submitData: CreateEventInput = {
       ...data,
-      date: new Date(data.date).toISOString(), // Ensure it's a full ISO string
+      // Convert the valid local string to a full ISO string for the backend
+      date: new Date(data.date).toISOString(), 
       maxVolunteers: data.maxVolunteers || undefined,
       imageUrl: data.imageUrl || undefined,
     };
@@ -269,7 +271,7 @@ const EventForm: React.FC<EventFormProps> = ({
             disabled={loading}
           />
         </div>
-        {/* This error will now show if the date is invalid OR empty */}
+        {/* This error will now correctly show if the date is invalid */}
         {errors.date && (
           <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
         )}

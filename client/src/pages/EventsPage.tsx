@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react'; // FIX: Corrected import path
-import { Search,  } from 'lucide-react';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { Search } from 'lucide-react';
 import { GET_ALL_EVENTS_QUERY } from '../graphql/queries/event.queries';
 import { SIGNUP_FOR_EVENT_MUTATION, CANCEL_SIGNUP_MUTATION } from '../graphql/mutations/event.mutations';
 import { MY_PROFILE_QUERY } from '../graphql/queries/user.queries';
-import type { Event, AllEventsData } from '../types/event.types'; // Import from types
-import type { MyProfileData } from '../types/user.types'; // Import from types
+import type { Event, AllEventsData } from '../types/event.types';
+import type { MyProfileData } from '../types/user.types';
 import EventList from '../components/events/EventList';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -24,8 +24,11 @@ const EventsPage: React.FC = () => {
     refetchQueries: [GET_ALL_EVENTS_QUERY, MY_PROFILE_QUERY],
   });
 
-  // FIX: Added explicit type for 'signup'
-  const userSignups = profileData?.myProfile.signups.map((signup: { event: { id: string } }) => signup.event.id) || [];
+  // *** THIS IS THE FIX ***
+  // We only get the IDs of signups that are *actually confirmed*.
+  const userSignups = profileData?.myProfile.signups
+    .filter((signup: { status: string }) => signup.status === 'CONFIRMED')
+    .map((signup: { event: { id: string } }) => signup.event.id) || [];
 
   const handleSignUp = async (eventId: string) => {
     try {
@@ -45,19 +48,14 @@ const EventsPage: React.FC = () => {
     }
   };
 
-  // Filter events based on search and tags
-  // FIX: Added explicit type for 'event'
   const filteredEvents = eventsData?.getAllEvents.filter((event: Event) => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase());
-    // FIX: Added explicit type for 'tag'
     const matchesTags = selectedTags.length === 0 || 
                        event.tags.some((tag: string) => selectedTags.includes(tag));
     return matchesSearch && matchesTags;
   }) || [];
 
-  // Get all unique tags
-  // FIX: Added explicit type for 'event'
   const allTags = Array.from(new Set(eventsData?.getAllEvents.flatMap((event: Event) => event.tags) || [])) as string[];
 
   if (eventsLoading) {
@@ -94,14 +92,13 @@ const EventsPage: React.FC = () => {
 
           {allTags.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {/* FIX: Added explicit type for 'tag' and 'index' */}
               {allTags.map((tag: string, index: number) => (
                 <button
-                  key={tag || index} // Use index as fallback key
+                  key={tag || index}
                   onClick={() => {
                     setSelectedTags(prev =>
                       prev.includes(tag)
-                        ? prev.filter((t: string) => t !== tag) // FIX: Add type for 't'
+                        ? prev.filter((t: string) => t !== tag)
                         : [...prev, tag]
                     );
                   }}

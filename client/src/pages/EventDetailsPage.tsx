@@ -1,12 +1,12 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client/react'; // FIX: Corrected import path
+import { useQuery, useMutation } from '@apollo/client/react';
 import { ArrowLeft } from 'lucide-react';
 import { GET_EVENT_DETAILS_QUERY } from '../graphql/queries/event.queries';
 import { SIGNUP_FOR_EVENT_MUTATION, CANCEL_SIGNUP_MUTATION } from '../graphql/mutations/event.mutations';
 import { MY_PROFILE_QUERY } from '../graphql/queries/user.queries';
-import type { EventDetailsData } from '../types/event.types'; // Import from types
-import type { MyProfileData } from '../types/user.types'; // Import from types
+import type { EventDetailsData } from '../types/event.types';
+import type { MyProfileData } from '../types/user.types';
 import EventDetails from '../components/events/EventDetails';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -14,13 +14,13 @@ const EventDetailsPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
 
-  // Fetch event details using the new query
+  // Fetch event details
   const { data: eventData, loading: eventLoading, error: eventError } = useQuery<EventDetailsData>(GET_EVENT_DETAILS_QUERY, {
     variables: { eventId },
     skip: !eventId,
   });
 
-  // Fetch user profile to check if signed up
+  // Fetch user profile to check signup status
   const { data: profileData } = useQuery<MyProfileData>(MY_PROFILE_QUERY);
 
   const [signupForEvent, { loading: signupLoading }] = useMutation(SIGNUP_FOR_EVENT_MUTATION, {
@@ -67,9 +67,14 @@ const EventDetailsPage: React.FC = () => {
   }
 
   const event = eventData.getEventDetails;
-  // FIX: Added explicit type for 'signup'
-  const userSignups = profileData?.myProfile.signups?.map((signup: { event: { id: string } }) => signup.event.id) || [];
-  const isUserSignedUp = userSignups.includes(eventId!);
+  
+  // *** THIS IS THE FIX ***
+  // We check if a signup exists that *matches this eventId* AND has a status of 'CONFIRMED'.
+  const isUserSignedUp = profileData?.myProfile.signups?.some(
+    (signup: { event: { id: string }; status: string }) => 
+      signup.event.id === eventId && signup.status === 'CONFIRMED'
+  ) || false;
+  
   const volunteerCount = event.signups?.length || 0;
 
   const handleSignUp = async () => {

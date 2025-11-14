@@ -58,15 +58,14 @@ export const eventResolvers = {
       });
     },
     
-    // *** THIS IS THE FIX ***
     getAllEvents: async () => {
       return prisma.event.findMany({
-        // REMOVED the 'where' clause that filtered for future dates
+        // Get all events, not just future ones
         orderBy: {
           date: "asc",
         },
         include: {
-          ngo: true, // Eager-load the NGO data the client query requires
+          ngo: true, // Eager-load the NGO
         },
       });
     },
@@ -93,7 +92,7 @@ export const eventResolvers = {
         where: { id: eventId },
         include: {
           ngo: true, 
-          signups: { 
+          signups: {  
             include: {
               user: {
                 select: { id: true, name: true, email: true },
@@ -106,7 +105,6 @@ export const eventResolvers = {
   },
 
   Mutation: {
-    // ... (All mutations remain unchanged) ...
     createEvent: async (
       _: any,
       { input }: { input: CreateEventInput },
@@ -117,10 +115,11 @@ export const eventResolvers = {
 
       const { date, ...rest } = input;
 
+      // The input 'date' is a valid ISO string from the form
       return prisma.event.create({
         data: {
           ...rest,
-          date: new Date(date),
+          date: new Date(date), // Prisma correctly handles the ISO string
           ngoId: user!.adminOfNgoId!,
         },
       });
@@ -208,8 +207,18 @@ export const eventResolvers = {
     },
   },
 
-  // "Smart" Type Resolvers - check if data was eager-loaded
+  // *** THIS IS THE FIX ***
+  // This object resolves fields for the 'Event' type
   Event: {
+    // This resolver ensures the 'date' field is *always*
+    // sent to the client as a standard ISO string.
+    date: (parent: EventWithRelations) => {
+      // parent.date is a Date object from Prisma
+      // .toISOString() converts it to '2025-11-22T09:00:00.000Z'
+      // This is a reliable format for 'new Date()' on the client.
+      return parent.date.toISOString();
+    },
+    
     ngo: (parent: EventWithRelations) => {
       // 1. If 'ngo' was eager-loaded, return it.
       if (parent.ngo) {
