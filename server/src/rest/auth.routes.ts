@@ -23,16 +23,18 @@ const setAuthCookies = (
   const accessTokenMaxAge = Number(process.env.ACCESS_TOKEN_EXPIRY) || 86400000; // 1 day
   const refreshTokenMaxAge = Number(process.env.REFRESH_TOKEN_EXPIRY) || 604800000; // 7 days
 
+  const isProduction = process.env.NODE_ENV === "production";
+
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: isProduction ? "none" : "lax",
     maxAge: accessTokenMaxAge,
   });
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: isProduction ? "none" : "lax",
     path: "/api/v1/auth/refresh_token",
     maxAge: refreshTokenMaxAge,
   });
