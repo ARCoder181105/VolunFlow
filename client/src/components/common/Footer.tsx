@@ -6,7 +6,7 @@ import Logo from './Logo';
 const Footer: React.FC = () => {
   return (
     <footer className="bg-gray-900 text-white">
-      <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-500" />
+      <div className="h-1 w-full bg-linear-to-r from-blue-600 via-purple-600 to-emerald-500" />
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}

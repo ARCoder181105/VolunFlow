@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { Search,  } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { GET_ALL_EVENTS_QUERY } from '../graphql/queries/event.queries';
 import { SIGNUP_FOR_EVENT_MUTATION, CANCEL_SIGNUP_MUTATION } from '../graphql/mutations/event.mutations';
 import { MY_PROFILE_QUERY } from '../graphql/queries/user.queries';
@@ -94,7 +94,7 @@ const EventsPage: React.FC = () => {
             <div className="flex flex-wrap gap-2">
               {allTags.map((tag: string, index: number) => (
                 <button
-                  key={tag || index} 
+                  key={tag || index}
                   onClick={() => {
                     setSelectedTags(prev =>
                       prev.includes(tag)

@@ -14,12 +14,12 @@ interface EventCardProps {
 
 const EventCard: React.FC<EventCardProps> = ({ 
   event, 
-  onSignUp, 
-  onCancel, 
-  userSignups = [], 
-  showActions = true 
+  // onSignUp, 
+  // onCancel, 
+  // userSignups = [], 
+  // showActions = true 
 }) => {
-  const isSignedUp = userSignups.includes(event.id);
+  // const isSignedUp = userSignups.includes(event.id);
 
   // 2. Create the date object AND validate it
   const eventDate = new Date(event.date);
@@ -97,7 +97,7 @@ const EventCard: React.FC<EventCardProps> = ({
         </div>
 
         {/* 5. Add 'isDateValid' to the conditional checks */}
-        {showActions && !isPastEvent && isDateValid && (
+        {/* {showActions && !isPastEvent && isDateValid && (
           <div className="mt-4">
             {isSignedUp ? (
               <button
@@ -115,7 +115,7 @@ const EventCard: React.FC<EventCardProps> = ({
               </button>
             )}
           </div>
-        )}
+        )} */}
 
         {isPastEvent && isDateValid && (
           <div className="mt-4">
