@@ -19,11 +19,12 @@ const app = express();
  * Sets up and configures the Express server.
  * This includes all middleware, routes, and GraphQL.
  */
+
 export async function setupServer() {
   // --- Core Middleware ---
   app.use(
     cors({
-      origin: "http://localhost:5173", // Your React app URL
+      origin: ["http://localhost:5173","https://volunflowbackend.onrender.com"], // Your React app URL
       credentials: true, // Important for cookies
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
