@@ -26,13 +26,13 @@ const setAuthCookies = (
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: accessTokenMaxAge,
   });
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/api/v1/auth/refresh_token",
     maxAge: refreshTokenMaxAge,
   });
