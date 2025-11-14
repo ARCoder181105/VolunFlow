@@ -1,10 +1,10 @@
 import React from 'react';
-import { useQuery } from '@apollo/client/react'; // FIX: Corrected import path
+import { useQuery } from '@apollo/client/react';
 import { Calendar, Award, TrendingUp } from 'lucide-react';
 import { MY_PROFILE_QUERY } from '../../graphql/queries/user.queries';
-import type { MyProfileData } from '../../types/user.types'; // Import from types
+import type { MyProfileData } from '../../types/user.types';
 import LoadingSpinner from '../common/LoadingSpinner';
-// import EventCard from '../events/EventCard';
+import { isValid, format } from 'date-fns'; // 1. Import isValid and format
 
 // Define explicit types for mapped items
 type SignupItem = {
@@ -33,10 +33,13 @@ const VolunteerDashboard: React.FC = () => {
   if (error) return <div>Error loading dashboard</div>;
 
   const profile = data?.myProfile;
-  // FIX: Added explicit type for 'signup'
-  const upcomingEvents = profile?.signups?.filter((signup: { event: { date: string }, status: string }) => 
-    new Date(signup.event.date) > new Date() && signup.status === 'CONFIRMED'
-  ) || [];
+  
+  // *** THIS IS THE FIX ***
+  // 2. Add isValid check to the filter
+  const upcomingEvents = profile?.signups?.filter((signup: { event: { date: string }, status: string }) => {
+    const eventDate = new Date(signup.event.date);
+    return isValid(eventDate) && eventDate > new Date() && signup.status === 'CONFIRMED';
+  }) || [];
 
   const earnedBadges = profile?.earnedBadges || [];
 
@@ -81,20 +84,24 @@ const VolunteerDashboard: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Events</h2>
           {upcomingEvents.length > 0 ? (
             <div className="space-y-4">
-              {/* FIX: Added explicit type for 'signup' */}
-              {upcomingEvents.slice(0, 3).map((signup: SignupItem) => (
-                <div key={signup.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-blue-600" />
+              {upcomingEvents.slice(0, 3).map((signup: SignupItem) => {
+                // 3. Add date validation for rendering
+                const eventDate = new Date(signup.event.date);
+                const isDateValid = isValid(eventDate);
+                return (
+                  <div key={signup.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="grow">
+                      <h4 className="font-medium text-gray-900">{signup.event.title}</h4>
+                      <p className="text-sm text-gray-600">
+                        {isDateValid ? format(eventDate, 'MMM dd, yyyy') : 'Invalid Date'} • {signup.event.location}
+                      </p>
+                    </div>
                   </div>
-                  <div className="grow">
-                    <h4 className="font-medium text-gray-900">{signup.event.title}</h4>
-                    <p className="text-sm text-gray-600">
-                      {new Date(signup.event.date).toLocaleDateString()} • {signup.event.location}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <p className="text-gray-600 text-center py-4">No upcoming events</p>
@@ -106,22 +113,25 @@ const VolunteerDashboard: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Badges</h2>
           {earnedBadges.length > 0 ? (
             <div className="space-y-4">
-              {/* FIX: Added explicit type for 'earnedBadge' */}
-              {earnedBadges.slice(0, 3).map((earnedBadge: EarnedBadgeItem) => (
-                <div key={earnedBadge.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <img
-                    src={earnedBadge.badge.imageUrl}
-                    alt={earnedBadge.badge.name}
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
-                  <div className="grow">
-                    <h4 className="font-medium text-gray-900">{earnedBadge.badge.name}</h4>
-                    <p className="text-sm text-gray-600">
-                      Earned on {new Date(earnedBadge.awardedAt).toLocaleDateString()}
-                    </p>
+              {earnedBadges.slice(0, 3).map((earnedBadge: EarnedBadgeItem) => {
+                const awardedDate = new Date(earnedBadge.awardedAt);
+                const isDateValid = isValid(awardedDate);
+                return (
+                  <div key={earnedBadge.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <img
+                      src={earnedBadge.badge.imageUrl}
+                      alt={earnedBadge.badge.name}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                    <div className="grow">
+                      <h4 className="font-medium text-gray-900">{earnedBadge.badge.name}</h4>
+                      <p className="text-sm text-gray-600">
+                        Earned on {isDateValid ? format(awardedDate, 'MMM dd, yyyy') : '...'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <p className="text-gray-600 text-center py-4">No badges earned yet</p>

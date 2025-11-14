@@ -6,6 +6,7 @@ import type { MyNgoData } from '../../types/ngo.types';
 import type { Event } from '../../types/event.types';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { Link } from 'react-router-dom';
+import { isValid } from 'date-fns'; // 1. Import isValid
 
 const AdminDashboard: React.FC = () => {
   const { data, loading, error } = useQuery<MyNgoData>(MY_NGO_QUERY);
@@ -47,7 +48,12 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  const upcomingEvents = ngo.events?.filter((event: Event) => new Date(event.date) > new Date()) || [];
+  // *** THIS IS THE FIX ***
+  // 2. Add isValid check to the filter
+  const upcomingEvents = ngo.events?.filter((event: Event) => {
+    const eventDate = new Date(event.date);
+    return isValid(eventDate) && eventDate > new Date();
+  }) || [];
   
   const allSignups = ngo.events?.flatMap((event: Event) => event.signups || []) || [];
   
@@ -57,7 +63,6 @@ const AdminDashboard: React.FC = () => {
     <div className="space-y-8">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* ... (stats divs remain unchanged) ... */}
         <div className="card text-center">
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Calendar className="w-6 h-6 text-blue-600" />
@@ -87,7 +92,7 @@ const AdminDashboard: React.FC = () => {
           </h3>
           <p className="text-gray-600">Badge Templates</p>
         </div>
-
+        {/* This count is now correct */}
         <div className="card text-center">
           <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Plus className="w-6 h-6 text-purple-600" />
@@ -104,9 +109,8 @@ const AdminDashboard: React.FC = () => {
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-4">
-            {/* 3. UPDATE THIS LINK */}
             <Link
-              to="/events/create" // <-- CHANGED FROM /events?action=create
+              to="/events/create"
               className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition duration-200 hover-raise"
             >
               <Plus className="w-8 h-8 text-blue-600 mx-auto mb-2" />
@@ -120,7 +124,7 @@ const AdminDashboard: React.FC = () => {
               <Award className="w-8 h-8 text-green-600 mx-auto mb-2" />
               <span className="text-sm font-medium text-gray-900">Create Badge</span>
             </Link>
-            {/* ... (other quick actions) ... */}
+
             <Link
               to="/dashboard?tab=volunteers"
               className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition duration-200 hover-raise"
@@ -139,8 +143,6 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ... (rest of the file is unchanged) ... */}
-        
         {/* Upcoming Events */}
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Events</h2>

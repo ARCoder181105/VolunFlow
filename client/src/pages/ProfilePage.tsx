@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react'; // FIX: Corrected import path
+import { useQuery, useMutation } from '@apollo/client/react';
 import { User, Mail, Calendar, Award, Edit3 } from 'lucide-react';
 import { MY_PROFILE_QUERY } from '../graphql/queries/user.queries';
 import { UPDATE_USER_MUTATION } from '../graphql/mutations/user.mutations';
-import type { MyProfileData } from '../types/user.types'; // Import from types
+import type { MyProfileData } from '../types/user.types';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EditProfileForm from '../components/auth/EditProfileForm';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns'; // 1. Import isValid
 
 // Define explicit types for mapped items
 type SignupItem = {
@@ -44,15 +44,18 @@ const ProfilePage: React.FC = () => {
   if (error) return <div>Error loading profile</div>;
 
   const profile = data?.myProfile;
-  // FIX: Added explicit type for 'signup'
-  const upcomingEvents = profile?.signups?.filter((signup: SignupItem) => 
-    new Date(signup.event.date) > new Date() && signup.status === 'CONFIRMED'
-  ) || [];
 
-  // FIX: Added explicit type for 'signup'
-  const pastEvents = profile?.signups?.filter((signup: SignupItem) => 
-    new Date(signup.event.date) <= new Date()
-  ) || [];
+  // *** THIS IS THE FIX ***
+  // 2. Add isValid check to filters
+  const upcomingEvents = profile?.signups?.filter((signup: SignupItem) => {
+    const eventDate = new Date(signup.event.date);
+    return isValid(eventDate) && eventDate > new Date() && signup.status === 'CONFIRMED';
+  }) || [];
+
+  const pastEvents = profile?.signups?.filter((signup: SignupItem) => {
+    const eventDate = new Date(signup.event.date);
+    return isValid(eventDate) && eventDate <= new Date();
+  }) || [];
 
   const handleUpdateProfile = async (data: { name: string; avatarUrl?: string }) => {
     try {
@@ -112,7 +115,7 @@ const ProfilePage: React.FC = () => {
                   <User className="w-10 h-10 text-blue-600" />
                 </div>
               )}
-              <div className="flex-grow">
+              <div className="grow">
                 <div className="flex items-center space-x-3 mb-2">
                   <h1 className="text-2xl font-bold text-gray-900">{profile?.name}</h1>
                   <button
@@ -142,20 +145,24 @@ const ProfilePage: React.FC = () => {
             <div className="card">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                 <Calendar className="w-5 h-5 mr-2" />
-                Upcoming Events ({upcomingEvents.length})
+                Upcoming Events ({upcomingEvents.length}) {/* This count is now correct */}
               </h2>
               {upcomingEvents.length > 0 ? (
                 <div className="space-y-3">
-                  {/* FIX: Added explicit type for 'signup' */}
-                  {upcomingEvents.map((signup: SignupItem) => (
-                    <div key={signup.id} className="p-3 bg-gray-50 rounded-lg">
-                      <h3 className="font-medium text-gray-900">{signup.event.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {format(new Date(signup.event.date), 'MMM dd, yyyy • hh:mm a')}
-                      </p>
-                      <p className="text-sm text-gray-600">{signup.event.location}</p>
-                    </div>
-                  ))}
+                  {upcomingEvents.map((signup: SignupItem) => {
+                    // 3. Add date validation for rendering
+                    const eventDate = new Date(signup.event.date);
+                    const isDateValid = isValid(eventDate);
+                    return (
+                      <div key={signup.id} className="p-3 bg-gray-50 rounded-lg">
+                        <h3 className="font-medium text-gray-900">{signup.event.title}</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {isDateValid ? format(eventDate, 'MMM dd, yyyy • hh:mm a') : "Invalid Date"}
+                        </p>
+                        <p className="text-sm text-gray-600">{signup.event.location}</p>
+                      </div>
+                    )
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-600 text-center py-4">No upcoming events</p>
@@ -170,22 +177,25 @@ const ProfilePage: React.FC = () => {
               </h2>
               {profile?.earnedBadges && profile.earnedBadges.length > 0 ? (
                 <div className="grid grid-cols-2 gap-4">
-                  {/* FIX: Added explicit type for 'earnedBadge' */}
-                  {profile.earnedBadges.map((earnedBadge: EarnedBadgeItem) => (
-                    <div key={earnedBadge.id} className="text-center">
-                      <img
-                        src={earnedBadge.badge.imageUrl}
-                        alt={earnedBadge.badge.name}
-                        className="w-16 h-16 mx-auto mb-2 rounded-lg object-cover"
-                      />
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {earnedBadge.badge.name}
-                      </h3>
-                      <p className="text-xs text-gray-600 mt-1">
-                        {format(new Date(earnedBadge.awardedAt), 'MMM yyyy')}
-                      </p>
-                    </div>
-                  ))}
+                  {profile.earnedBadges.map((earnedBadge: EarnedBadgeItem) => {
+                    const awardedDate = new Date(earnedBadge.awardedAt);
+                    const isDateValid = isValid(awardedDate);
+                    return (
+                      <div key={earnedBadge.id} className="text-center">
+                        <img
+                          src={earnedBadge.badge.imageUrl}
+                          alt={earnedBadge.badge.name}
+                          className="w-16 h-16 mx-auto mb-2 rounded-lg object-cover"
+                        />
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {earnedBadge.badge.name}
+                        </h3>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {isDateValid ? format(awardedDate, 'MMM yyyy') : '...'}
+                        </p>
+                      </div>
+                    )
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-600 text-center py-4">No badges earned yet</p>
@@ -195,24 +205,27 @@ const ProfilePage: React.FC = () => {
             {/* Past Events */}
             <div className="card lg:col-span-2">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Past Events ({pastEvents.length})
+                Past Events ({pastEvents.length}) {/* This count is now correct */}
               </h2>
               {pastEvents.length > 0 ? (
                 <div className="space-y-3">
-                  {/* FIX: Added explicit type for 'signup' */}
-                  {pastEvents.map((signup: SignupItem) => (
-                    <div key={signup.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{signup.event.title}</h3>
-                        <p className="text-sm text-gray-600">
-                          {format(new Date(signup.event.date), 'MMM dd, yyyy')} • {signup.event.location}
-                        </p>
+                  {pastEvents.map((signup: SignupItem) => {
+                    const eventDate = new Date(signup.event.date);
+                    const isDateValid = isValid(eventDate);
+                    return (
+                      <div key={signup.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{signup.event.title}</h3>
+                          <p className="text-sm text-gray-600">
+                            {isDateValid ? format(eventDate, 'MMM dd, yyyy') : 'Invalid Date'} • {signup.event.location}
+                          </p>
+                        </div>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                          Completed
+                        </span>
                       </div>
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                        Completed
-                      </span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-600 text-center py-4">No past events</p>

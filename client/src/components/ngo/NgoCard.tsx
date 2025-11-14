@@ -2,6 +2,7 @@ import React from 'react';
 import { Building, MapPin, Users, Calendar, ExternalLink } from 'lucide-react';
 import type { NGO, NgoEvent } from '../../types/ngo.types';
 import { Link } from 'react-router-dom';
+import { isValid } from 'date-fns'; // 1. Import isValid
 
 interface NgoCardProps {
   ngo: NGO;
@@ -10,10 +11,13 @@ interface NgoCardProps {
 }
 
 const NgoCard: React.FC<NgoCardProps> = ({ ngo, showActions = true,  }) => {
-  // Safe filtering with proper type checking
+  
+  // *** THIS IS THE FIX ***
+  // 2. Add isValid check to the filter
   const upcomingEvents = ngo.events?.filter((event: NgoEvent) => {
     try {
-      return new Date(event.date) > new Date();
+      const eventDate = new Date(event.date);
+      return isValid(eventDate) && eventDate > new Date();
     } catch {
       return false;
     }
@@ -79,6 +83,7 @@ const NgoCard: React.FC<NgoCardProps> = ({ ngo, showActions = true,  }) => {
           <div className="text-xs text-gray-600">Total Events</div>
         </div>
         
+        {/* This count is now correct */}
         <div className="text-center">
           <div className="flex items-center justify-center text-gray-600 mb-1">
             <Users className="w-4 h-4 mr-1" />

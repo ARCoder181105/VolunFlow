@@ -4,6 +4,7 @@ import type { NGO } from '../../types/ngo.types';
 import type { Event } from '../../types/event.types'; // Import main Event type
 import EventCard from '../events/EventCard';
 import BadgeCard from '../badges/BadgeCard';
+import { isValid } from 'date-fns'; // 1. Import isValid
 
 interface NgoProfileProps {
   ngo: NGO;
@@ -24,17 +25,21 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'events' | 'badges' | 'branches'>('events');
 
-  const upcomingEvents = ngo.events?.filter((event: Event) => { // Use main Event type
+  // *** THIS IS THE FIX ***
+  // 2. Add isValid check to filters
+  const upcomingEvents = ngo.events?.filter((event: Event) => {
     try {
-      return new Date(event.date) > new Date();
+      const eventDate = new Date(event.date);
+      return isValid(eventDate) && eventDate > new Date();
     } catch {
       return false;
     }
   }) || [];
 
-  const pastEvents = ngo.events?.filter((event: Event) => { // Use main Event type
+  const pastEvents = ngo.events?.filter((event: Event) => {
     try {
-      return new Date(event.date) <= new Date();
+      const eventDate = new Date(event.date);
+      return isValid(eventDate) && eventDate <= new Date();
     } catch {
       return false;
     }
@@ -176,7 +181,7 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
                   {upcomingEvents.map((event) => (
                     <EventCard
                       key={event.id}
-                      event={event} // No cast needed
+                      event={event}
                       onSignUp={onEventSignUp}
                       onCancel={onEventCancel}
                       userSignups={userSignups}
@@ -194,7 +199,7 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
                   {pastEvents.map((event) => (
                     <EventCard
                       key={event.id}
-                      event={event} // No cast needed
+                      event={event}
                       showActions={false}
                     />
                   ))}

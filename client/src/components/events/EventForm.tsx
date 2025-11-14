@@ -11,12 +11,10 @@ import { GENERATE_EVENT_TAGS_MUTATION } from '../../graphql/mutations/event.muta
 const eventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title is too long'),
   description: z.string().min(10, 'Description must be at least 10 characters').max(1000, 'Description is too long'),
-  // We add a 'refine' check to ensure the string is a parsable date
+  // Use z.string().datetime() to ensure it's a valid date string
   date: z.string()
     .min(1, 'Date is required')
-    .refine((val) => !isNaN(Date.parse(val)), {
-      message: "Please select a valid date and time",
-    }),
+    .datetime({ message: "Please select a valid date and time." }),
   location: z.string().min(1, 'Location is required'),
   maxVolunteers: z.number().min(1, 'Must be at least 1').optional().or(z.literal('')),
   tags: z.array(z.string()),
@@ -61,6 +59,7 @@ const EventForm: React.FC<EventFormProps> = ({
     defaultValues: {
       title: event?.title || '',
       description: event?.description || '',
+      // Ensure the default value for 'date' is a valid ISO string snippet or empty
       date: event?.date ? new Date(event.date).toISOString().slice(0, 16) : '',
       location: event?.location || '',
       maxVolunteers: event?.maxVolunteers || '',
@@ -162,6 +161,7 @@ const EventForm: React.FC<EventFormProps> = ({
   const onSubmitForm = (data: EventFormData) => {
     const submitData: CreateEventInput = {
       ...data,
+      date: new Date(data.date).toISOString(), // Ensure it's a full ISO string
       maxVolunteers: data.maxVolunteers || undefined,
       imageUrl: data.imageUrl || undefined,
     };
