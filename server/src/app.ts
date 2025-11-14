@@ -37,22 +37,22 @@ export async function setupServer() {
   );
 
   // Re-enable Helmet with the correct configuration
-  app.use(
-    helmet({
-      contentSecurityPolicy: isProduction
-        ? undefined // Use Helmet's secure defaults in production
-        : { // Loosen CSP for Apollo Sandbox in development
-            directives: {
-              ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-              "script-src-attr": ["'unsafe-inline'"],
-              "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
-            },
-          },
-      // This is VITAL for services like Google OAuth popups to work
-      crossOriginEmbedderPolicy: false,
-      crossOriginOpenerPolicy: false,
-    })
-  );
+  // app.use(
+  //   helmet({
+  //     contentSecurityPolicy: isProduction
+  //       ? undefined // Use Helmet's secure defaults in production
+  //       : { // Loosen CSP for Apollo Sandbox in development
+  //           directives: {
+  //             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+  //             "script-src-attr": ["'unsafe-inline'"],
+  //             "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+  //           },
+  //         },
+  //     // This is VITAL for services like Google OAuth popups to work
+  //     crossOriginEmbedderPolicy: false,
+  //     crossOriginOpenerPolicy: false,
+  //   })
+  // );
 
   app.use(morgan("dev"));
   app.use(express.json());
