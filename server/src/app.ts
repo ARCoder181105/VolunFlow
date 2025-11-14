@@ -15,34 +15,44 @@ import uploadRoutes from "./rest/upload.routes.js";
 // Create the Express app instance
 const app = express();
 
+const CLIENT_URL = process.env.CLIENT_URL;
 /**
  * Sets up and configures the Express server.
  * This includes all middleware, routes, and GraphQL.
  */
 
 export async function setupServer() {
+  const isProduction = process.env.NODE_ENV === "production";
+  
   // --- Core Middleware ---
   app.use(
     cors({
-      origin: ["http://localhost:5173","https://volunflowbackend.onrender.com"], // Your React app URL
+      // *** THIS IS THE FIX ***
+      // Use your CLIENT_URL from .env, not the backend URL
+      origin: [CLIENT_URL, "http://localhost:5173"].filter((o): o is string => Boolean(o)),
       credentials: true, // Important for cookies
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
     })
   );
 
-  // Configure Helmet to allow Apollo Sandbox in development
-  // app.use(
-  //   helmet({
-  //     contentSecurityPolicy: {
-  //       directives: {
-  //         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-  //         "script-src-attr": ["'unsafe-inline'"],
-  //         "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
-  //       },
-  //     },
-  //   })
-  // );
+  // Re-enable Helmet with the correct configuration
+  app.use(
+    helmet({
+      contentSecurityPolicy: isProduction
+        ? undefined // Use Helmet's secure defaults in production
+        : { // Loosen CSP for Apollo Sandbox in development
+            directives: {
+              ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+              "script-src-attr": ["'unsafe-inline'"],
+              "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+            },
+          },
+      // This is VITAL for services like Google OAuth popups to work
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: false,
+    })
+  );
 
   app.use(morgan("dev"));
   app.use(express.json());
