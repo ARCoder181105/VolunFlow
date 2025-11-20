@@ -26,6 +26,19 @@ export const CANCEL_SIGNUP_MUTATION = gql`
   }
 `;
 
+export const MARK_ATTENDANCE_MUTATION = gql`
+  mutation MarkAttendance($signupId: ID!, $attended: Boolean!) {
+    markAttendance(signupId: $signupId, attended: $attended) {
+      id
+      status
+      user {
+        id
+        name
+      }
+    }
+  }
+`;
+
 export const CREATE_EVENT_MUTATION = gql`
   mutation CreateEvent($input: CreateEventInput!) {
     createEvent(input: $input) {

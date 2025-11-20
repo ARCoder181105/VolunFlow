@@ -32,14 +32,12 @@ export const signupResolvers = {
             user: true,
           },
         });
-        console.log(newSignup)
+        
         triggerEventSignup(newSignup.user, newSignup.event);
 
         return newSignup;
       } catch (error) {
-        // This catches database errors, like trying to sign up twice.
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-          // The 'P2002' code is for a unique constraint violation.
           if (error.code === "P2002") {
             throw new GraphQLError(
               "You have already signed up for this event.",
@@ -62,7 +60,6 @@ export const signupResolvers = {
     ) => {
       const { user } = context;
 
-      // Security Check: User must be logged in.
       if (!user) {
         throw new GraphQLError("You must be logged in to cancel a signup.", {
           extensions: { code: "UNAUTHENTICATED" },
@@ -72,13 +69,13 @@ export const signupResolvers = {
       try {
         const updatedSignup = await prisma.signup.update({
           where: {
-            userId_eventId: {// using the compound key of the user and event
+            userId_eventId: {
               userId: user.id,
               eventId: eventId,
             },
           },
           data: {
-            status: "CANCELLED", // Set the status as defined in your schema
+            status: "CANCELLED",
           },
           include: {
             event: true,
@@ -88,10 +85,8 @@ export const signupResolvers = {
 
         return updatedSignup;
       } catch (error) {
-        // This will catch errors if the signup doesn't exist
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === "P2025") {
-            // 'Record to update not found'
             throw new GraphQLError(
               "Signup not found or you're not registered for this event.",
               {
@@ -105,6 +100,58 @@ export const signupResolvers = {
           extensions: { code: "INTERNAL_SERVER_ERROR" },
         });
       }
+    },
+    
+    // --- NEW RESOLVER ---
+    markAttendance: async (
+      _: any,
+      { signupId, attended }: { signupId: string; attended: boolean },
+      context: MyContext
+    ) => {
+      const { user } = context;
+
+      // 1. Auth Check
+      if (!user) {
+        throw new GraphQLError("You must be logged in.", {
+          extensions: { code: "UNAUTHENTICATED" },
+        });
+      }
+
+      if (user.role !== "NGO_ADMIN" || !user.adminOfNgoId) {
+        throw new GraphQLError("Only NGO admins can mark attendance.", {
+          extensions: { code: "FORBIDDEN" },
+        });
+      }
+
+      // 2. Fetch the signup to verify ownership
+      const signup = await prisma.signup.findUnique({
+        where: { id: signupId },
+        include: { event: true },
+      });
+
+      if (!signup) {
+        throw new GraphQLError("Signup not found.", {
+          extensions: { code: "NOT_FOUND" },
+        });
+      }
+
+      // 3. Verify the event belongs to the admin's NGO
+      if (signup.event.ngoId !== user.adminOfNgoId) {
+        throw new GraphQLError("You can only mark attendance for your own events.", {
+          extensions: { code: "FORBIDDEN" },
+        });
+      }
+
+      // 4. Update status
+      const updatedSignup = await prisma.signup.update({
+        where: { id: signupId },
+        data: {
+          status: attended ? "ATTENDED" : "CONFIRMED",
+        },
+        include: { event: true, user: true },
+      });
+
+      return updatedSignup;
     },
   },
 };

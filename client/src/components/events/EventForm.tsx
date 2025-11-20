@@ -7,18 +7,22 @@ import type { CreateEventInput, Event } from '../../types/event.types';
 import { useMutation } from '@apollo/client/react';
 import { GENERATE_EVENT_TAGS_MUTATION } from '../../graphql/mutations/event.mutations';
 
-// *** THIS IS THE FIX ***
+// --- SCHEMA DEFINITION ---
+// validation logic works on strings directly to avoid type conflicts with the form hook
 const eventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title is too long'),
   description: z.string().min(10, 'Description must be at least 10 characters').max(1000, 'Description is too long'),
-  // We use .refine() to check if the string can be parsed into a valid date
   date: z.string()
     .min(1, 'Date is required')
     .refine((val) => !isNaN(Date.parse(val)), {
       message: "Please select a valid date and time",
     }),
   location: z.string().min(1, 'Location is required'),
-  maxVolunteers: z.number().min(1, 'Must be at least 1').optional().or(z.literal('')),
+  // Fix: Validate as string (allowing empty), convert later
+  maxVolunteers: z.string()
+    .refine((val) => val === '' || (!isNaN(Number(val)) && Number(val) >= 1), { 
+      message: "Must be at least 1" 
+    }),
   tags: z.array(z.string()),
   imageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 });
@@ -42,10 +46,10 @@ const EventForm: React.FC<EventFormProps> = ({
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(event?.imageUrl || '');
 
+  // Mutation for AI tags
   interface GenerateTagsResult {
     generateEventTags: string[];
   }
-
   const [generateTags, { loading: isGeneratingTags }] = useMutation<GenerateTagsResult>(GENERATE_EVENT_TAGS_MUTATION);
 
   const {
@@ -61,9 +65,11 @@ const EventForm: React.FC<EventFormProps> = ({
     defaultValues: {
       title: event?.title || '',
       description: event?.description || '',
+      // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
       date: event?.date ? new Date(event.date).toISOString().slice(0, 16) : '',
       location: event?.location || '',
-      maxVolunteers: event?.maxVolunteers || '',
+      // Convert number to string for the input field
+      maxVolunteers: event?.maxVolunteers ? String(event.maxVolunteers) : '',
       tags: event?.tags || [],
       imageUrl: event?.imageUrl || '',
     },
@@ -71,9 +77,11 @@ const EventForm: React.FC<EventFormProps> = ({
 
   const currentTags = watch('tags');
 
+  // Update tags if event prop changes (e.g. when editing)
   useEffect(() => {
     if (event) {
       setValue('tags', event.tags || []);
+      if (event.imageUrl) setPreviewUrl(event.imageUrl);
     }
   }, [event, setValue]);
 
@@ -120,19 +128,21 @@ const EventForm: React.FC<EventFormProps> = ({
   };
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !currentTags.includes(tagInput.trim())) {
-      setValue('tags', [...currentTags, tagInput.trim()]);
+    if (tagInput.trim() && !currentTags?.includes(tagInput.trim())) {
+      const newTags = currentTags ? [...currentTags, tagInput.trim()] : [tagInput.trim()];
+      setValue('tags', newTags);
       setTagInput('');
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setValue('tags', currentTags.filter(tag => tag !== tagToRemove));
+    const newTags = currentTags?.filter(tag => tag !== tagToRemove) || [];
+    setValue('tags', newTags);
   };
 
   const handleGenerateTags = async () => {
     const description = watch('description');
-    if (!description.trim()) {
+    if (!description?.trim()) {
       setError('description', { message: 'Please enter a description first' });
       return;
     }
@@ -160,11 +170,13 @@ const EventForm: React.FC<EventFormProps> = ({
   };
 
   const onSubmitForm = (data: EventFormData) => {
+    // Manual conversion happens here, avoiding the type conflict in useForm
     const submitData: CreateEventInput = {
       ...data,
-      // Convert the valid local string to a full ISO string for the backend
-      date: new Date(data.date).toISOString(), 
-      maxVolunteers: data.maxVolunteers || undefined,
+      // Convert local time string back to ISO string for backend
+      date: new Date(data.date).toISOString(),
+      // Convert string input to number or undefined
+      maxVolunteers: data.maxVolunteers === '' ? undefined : Number(data.maxVolunteers),
       imageUrl: data.imageUrl || undefined,
     };
     onSubmit(submitData);
@@ -178,7 +190,7 @@ const EventForm: React.FC<EventFormProps> = ({
           Event Image (Optional)
         </label>
         
-        <div className="relative inline-block w-full max-w-sm">
+        <div className="relative inline-block w-full max-w-sm group cursor-pointer">
           {previewUrl ? (
             <img
               src={previewUrl}
@@ -187,7 +199,7 @@ const EventForm: React.FC<EventFormProps> = ({
             />
           ) : (
             <div 
-              className="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center border-4 border-white shadow-lg"
+              className="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center border-4 border-white shadow-lg hover:bg-gray-200 transition-colors"
             >
               <Image className="w-16 h-16 text-gray-400" />
             </div>
@@ -213,14 +225,14 @@ const EventForm: React.FC<EventFormProps> = ({
           </label>
         </div>
         
+        {errors.imageUrl && (
+          <p className="form-error text-center mt-2 text-sm text-red-600">{errors.imageUrl.message}</p>
+        )}
         <div className="mt-2">
           <p className="text-xs text-gray-500">
             JPG, PNG, GIF up to 5MB. Recommended: 16:9 aspect ratio.
           </p>
         </div>
-        {errors.imageUrl && (
-          <p className="form-error text-center">{errors.imageUrl.message}</p>
-        )}
       </div>
 
       {/* Title */}
@@ -263,7 +275,7 @@ const EventForm: React.FC<EventFormProps> = ({
           Date & Time *
         </label>
         <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
           <input
             {...register('date')}
             type="datetime-local"
@@ -271,7 +283,6 @@ const EventForm: React.FC<EventFormProps> = ({
             disabled={loading}
           />
         </div>
-        {/* This error will now correctly show if the date is invalid */}
         {errors.date && (
           <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
         )}
@@ -283,7 +294,7 @@ const EventForm: React.FC<EventFormProps> = ({
           Location *
         </label>
         <div className="relative">
-          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
           <input
             {...register('location')}
             type="text"
@@ -303,7 +314,7 @@ const EventForm: React.FC<EventFormProps> = ({
           Maximum Volunteers (Optional)
         </label>
         <input
-          {...register('maxVolunteers', { valueAsNumber: true })}
+          {...register('maxVolunteers')} 
           type="number"
           min="1"
           className="input-field"
@@ -315,7 +326,7 @@ const EventForm: React.FC<EventFormProps> = ({
         )}
       </div>
       
-      {/* Hidden imageUrl field */}
+      {/* Hidden imageUrl field managed by state */}
       <input type="hidden" {...register('imageUrl')} />
 
       {/* Tags */}
@@ -328,7 +339,7 @@ const EventForm: React.FC<EventFormProps> = ({
             type="button"
             onClick={handleGenerateTags}
             disabled={isGeneratingTags || loading}
-            className="flex items-center text-sm text-blue-600 hover:text-blue-500 disabled:opacity-50"
+            className="flex items-center text-sm text-blue-600 hover:text-blue-500 disabled:opacity-50 transition-colors"
           >
             <Sparkles className="w-4 h-4 mr-1" />
             {isGeneratingTags ? 'Generating...' : 'AI Generate Tags'}
@@ -336,10 +347,9 @@ const EventForm: React.FC<EventFormProps> = ({
         </div>
         
         <div className="space-y-3">
-          {/* Tag Input */}
           <div className="flex space-x-2">
             <div className="relative grow">
-              <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
               <input
                 type="text"
                 value={tagInput}
@@ -360,8 +370,7 @@ const EventForm: React.FC<EventFormProps> = ({
             </button>
           </div>
 
-          {/* Current Tags */}
-          {currentTags.length > 0 && (
+          {currentTags && currentTags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {currentTags.map((tag, index) => (
                 <span
@@ -372,7 +381,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   <button
                     type="button"
                     onClick={() => handleRemoveTag(tag)}
-                    className="ml-2 text-blue-600 hover:text-blue-800"
+                    className="ml-2 text-blue-600 hover:text-blue-800 font-bold focus:outline-none"
                     disabled={loading}
                   >
                     ×
@@ -392,7 +401,7 @@ const EventForm: React.FC<EventFormProps> = ({
         <button
           type="submit"
           disabled={loading || uploading}
-          className="btn-primary flex items-center justify-center"
+          className="btn-primary flex items-center justify-center flex-1"
         >
           {loading ? (
             <>
@@ -411,7 +420,7 @@ const EventForm: React.FC<EventFormProps> = ({
         
         <button
           type="button"
-          className="btn-secondary"
+          className="btn-secondary flex-1"
           onClick={() => window.history.back()}
           disabled={loading || uploading}
         >

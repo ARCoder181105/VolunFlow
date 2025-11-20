@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@apollo/client/react';
-import { Users, Calendar, Award, Plus, Building, ArrowLeft, TrendingUp, Mail } from 'lucide-react';
+import { Users, Calendar, Award, Plus, Building, ArrowLeft, TrendingUp, Mail, Settings } from 'lucide-react';
 import { MY_NGO_QUERY } from '../../graphql/queries/ngo.queries';
 import type { MyNgoData } from '../../types/ngo.types';
 import type { Event } from '../../types/event.types';
@@ -108,7 +108,7 @@ const AdminDashboard: React.FC = () => {
                   <tr key={volunteer.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg shrink-0">
                           {volunteer.avatarUrl ? (
                             <img src={volunteer.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
                           ) : (
@@ -174,17 +174,17 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="card p-6 bg-linear-to-br from-blue-500 to-blue-600 text-white border-none">
+          <div className="card p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none">
             <div className="text-blue-100 text-sm font-medium mb-1">Total Engagement</div>
             <div className="text-3xl font-bold">{totalSignupsCount}</div>
             <div className="text-blue-100 text-xs mt-2">Signups across all events</div>
           </div>
-          <div className="card p-6 bg-linear-to-br from-purple-500 to-purple-600 text-white border-none">
+          <div className="card p-6 bg-gradient-to-br from-purple-500 to-purple-600 text-white border-none">
             <div className="text-purple-100 text-sm font-medium mb-1">Avg. Attendance</div>
             <div className="text-3xl font-bold">{avgVolunteers}</div>
             <div className="text-purple-100 text-xs mt-2">Volunteers per event</div>
           </div>
-          <div className="card p-6 bg-linear-to-br from-emerald-500 to-emerald-600 text-white border-none">
+          <div className="card p-6 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-none">
             <div className="text-emerald-100 text-sm font-medium mb-1">Active Volunteers</div>
             <div className="text-3xl font-bold">{uniqueVolunteers.length}</div>
             <div className="text-emerald-100 text-xs mt-2">Unique individuals</div>
@@ -265,7 +265,7 @@ const AdminDashboard: React.FC = () => {
 
         <div className="card text-center">
           <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Plus className="w-6 h-6 text-purple-600" />
+            <TrendingUp className="w-6 h-6 text-purple-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-1">
             {upcomingEvents.length}
@@ -281,33 +281,33 @@ const AdminDashboard: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <Link
               to="/events/create"
-              className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition duration-200 hover-raise"
+              className="p-4 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition duration-200 flex flex-col items-center justify-center"
             >
-              <Plus className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <Plus className="w-8 h-8 text-blue-600 mb-2" />
               <span className="text-sm font-medium text-gray-900">Create Event</span>
             </Link>
 
             <Link
               to="/badges/create"
-              className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition duration-200 hover-raise block"
+              className="p-4 bg-green-50 rounded-lg text-center hover:bg-green-100 transition duration-200 flex flex-col items-center justify-center"
             >
-              <Award className="w-8 h-8 text-green-600 mx-auto mb-2" />
+              <Award className="w-8 h-8 text-green-600 mb-2" />
               <span className="text-sm font-medium text-gray-900">Create Badge</span>
             </Link>
 
             <Link
               to="/dashboard?tab=volunteers"
-              className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition duration-200 hover-raise"
+              className="p-4 bg-yellow-50 rounded-lg text-center hover:bg-yellow-100 transition duration-200 flex flex-col items-center justify-center"
             >
-              <Users className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
+              <Users className="w-8 h-8 text-yellow-600 mb-2" />
               <span className="text-sm font-medium text-gray-900">Manage Volunteers</span>
             </Link>
 
             <Link
               to="/dashboard?tab=reports"
-              className="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition duration-200 hover-raise"
+              className="p-4 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition duration-200 flex flex-col items-center justify-center"
             >
-              <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+              <Calendar className="w-8 h-8 text-purple-600 mb-2" />
               <span className="text-sm font-medium text-gray-900">View Reports</span>
             </Link>
           </div>
@@ -320,15 +320,19 @@ const AdminDashboard: React.FC = () => {
             <div className="space-y-3">
               {upcomingEvents.slice(0, 3).map((event: Event) => (
                 <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{event.title}</h3>
+                  <div className="min-w-0 pr-4">
+                    <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>
                     <p className="text-sm text-gray-600">
-                      {isValid(new Date(event.date)) ? new Date(event.date).toLocaleDateString() : 'Invalid Date'} • {event.location}
+                      {isValid(new Date(event.date)) ? format(new Date(event.date), 'MMM dd, yyyy') : 'Invalid Date'}
                     </p>
                   </div>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                    Upcoming
-                  </span>
+                  <Link 
+                    to={`/events/${event.id}/manage`}
+                    className="shrink-0 px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:text-blue-600 transition-colors flex items-center"
+                  >
+                    <Settings className="w-3 h-3 mr-1" />
+                    Manage
+                  </Link>
                 </div>
               ))}
             </div>

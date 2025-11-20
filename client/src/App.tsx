@@ -16,8 +16,9 @@ import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import EventDetailsPage from './pages/EventDetailsPage';
 import CreateBadgePage from './pages/CreateBadgePage';
-import CreateEventPage from './pages/CreateEventPage'; // <-- 1. IMPORT THE NEW PAGE
+import CreateEventPage from './pages/CreateEventPage'; 
 import NgoDetailsPage from './pages/NgoDetailsPage';
+import ManageEventPage from './pages/ManageEventPage'; // <--- Import new page
 import './styles/globals.css';
 
 function App() {
@@ -48,12 +49,19 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                {/* 2. ADD THE NEW ROUTE */}
                 <Route
                   path="/events/create"
                   element={
                     <ProtectedRoute>
                       <CreateEventPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/events/:eventId/manage"
+                  element={
+                    <ProtectedRoute>
+                      <ManageEventPage />
                     </ProtectedRoute>
                   }
                 />
