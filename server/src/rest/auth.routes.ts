@@ -40,10 +40,12 @@ const setAuthCookies = (
   });
 };
 
+// *** UPDATE: Added avatarUrl to the schema ***
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  avatarUrl: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -57,7 +59,8 @@ const loginSchema = z.object({
 router.post("/register", async (req, res) => {
   try {
     const validatedBody = registerSchema.parse(req.body);
-    const { email, password, name } = validatedBody;
+    // *** UPDATE: Destructure avatarUrl from the validated body ***
+    const { email, password, name, avatarUrl } = validatedBody;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -68,8 +71,15 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = await hashPassword(password);
 
+    // *** UPDATE: Pass avatarUrl to Prisma ***
     const user = await prisma.user.create({
-      data: { email, name, password: hashedPassword, authProvider: "EMAIL" },
+      data: { 
+        email, 
+        name, 
+        password: hashedPassword, 
+        authProvider: "EMAIL",
+        avatarUrl 
+      },
     });
 
     const { accessToken, refreshToken } = await generateAndStoreTokens(user);
@@ -81,6 +91,10 @@ router.post("/register", async (req, res) => {
     res.status(201).json(userResponse);
   } catch (error) {
     console.error(error);
+    // Improve error handling slightly to see Zod errors in console
+    if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.message });
+    }
     res.status(500).json({ message: "Server error during registration." });
   }
 });

@@ -10,7 +10,6 @@ import {
   Badge,
 } from "@prisma/client";
 
-// This check is for mutations where an NGO *must* exist
 const checkIsNgoAdmin = (user: MyContext["user"]) => {
   if (!user) {
     throw new GraphQLError("You must be logged in to perform this action.", {
@@ -24,7 +23,6 @@ const checkIsNgoAdmin = (user: MyContext["user"]) => {
   }
 };
 
-// This helper type allows our NGO type resolvers to be "smart"
 type NgoWithRelations = NgoPrismaType & {
   events?: Event[];
   branches?: Branch[];
@@ -33,37 +31,29 @@ type NgoWithRelations = NgoPrismaType & {
 
 export const ngoResolvers = {
   Query: {
-    // Public query, no auth check
     getNgoBySlug: async (_: any, { slug }: { slug: string }) => {
       return prisma.nGO.findUnique({ where: { slug } });
     },
 
-    // This is the query for the admin dashboard
     myNgo: async (_: any, __: any, context: MyContext) => {
       const { user } = context;
 
-      // 1. User must be logged in.
       if (!user) {
         throw new GraphQLError("You must be logged in.", {
           extensions: { code: "UNAUTHENTICATED" },
         });
       }
 
-      // 2. User must be an NGO_ADMIN.
       if (user.role !== "NGO_ADMIN") {
-        // This shouldn't be hit if client logic is correct, but good for security
         throw new GraphQLError("You are not an NGO admin.", {
           extensions: { code: "FORBIDDEN" },
         });
       }
 
-      // 3. If they are an admin but have no NGO ID, return null.
-      //    This is NOT an error.
       if (!user.adminOfNgoId) {
         return null;
       }
 
-      // 4. If they are an admin AND have an NGO ID, fetch it with all data.
       return prisma.nGO.findUnique({
         where: { id: user.adminOfNgoId },
         include: {
@@ -73,7 +63,13 @@ export const ngoResolvers = {
               signups: {
                 include: {
                   user: {
-                    select: { id: true },
+                    // *** UPDATE: Select fields needed for "Manage Volunteers" list
+                    select: { 
+                      id: true,
+                      name: true,
+                      email: true,
+                      avatarUrl: true 
+                    },
                   },
                 },
               },
@@ -85,7 +81,6 @@ export const ngoResolvers = {
       });
     },
 
-    // Public query for browsing all NGOs
     getAllNgos: async () => {
       return prisma.nGO.findMany({
         include: {
@@ -108,7 +103,6 @@ export const ngoResolvers = {
         });
       }
 
-      // Prevent a user from creating a second NGO
       if (context.user.role === "NGO_ADMIN" && context.user.adminOfNgoId) {
         throw new GraphQLError("You are already an admin of an NGO.", {
           extensions: { code: "FORBIDDEN" },
@@ -118,7 +112,6 @@ export const ngoResolvers = {
       const { name, description, contactEmail, logoUrl } = input;
       const slug = (slugify as any)(name, { lower: true, strict: true });
 
-      // Check for existing name or slug
       const existingNgo = await prisma.nGO.findFirst({
         where: { OR: [{ name }, { slug }] },
       });
@@ -135,11 +128,10 @@ export const ngoResolvers = {
             slug,
             description,
             contactEmail,
-            logoUrl: logoUrl || undefined, // Use undefined if logoUrl is empty/null
+            logoUrl: logoUrl || undefined,
           },
         });
 
-        // Promote the user to NGO_ADMIN and link them to the new NGO
         await tx.user.update({
           where: { id: context.user!.id },
           data: {
@@ -160,7 +152,7 @@ export const ngoResolvers = {
       context: MyContext
     ) => {
       const { user } = context;
-      checkIsNgoAdmin(user); // Correct: Must have an NGO to update it
+      checkIsNgoAdmin(user);
 
       const dataToUpdate: Prisma.NGOUpdateInput = { ...input };
 
@@ -179,7 +171,7 @@ export const ngoResolvers = {
 
     deleteNgo: async (_: any, __: any, context: MyContext) => {
       const { user } = context;
-      checkIsNgoAdmin(user); // Correct: Must have an NGO to delete it
+      checkIsNgoAdmin(user);
 
       const adminId = user!.id;
       const ngoId = user!.adminOfNgoId!;
@@ -207,18 +199,17 @@ export const ngoResolvers = {
     },
   },
 
-  // Type Resolvers: Fetch relations only if they weren't eager-loaded
   NGO: {
     events: (parent: NgoWithRelations) => {
-      if (parent.events) return parent.events; // Return eager-loaded data
+      if (parent.events) return parent.events;
       return prisma.event.findMany({ where: { ngoId: parent.id } });
     },
     branches: (parent: NgoWithRelations) => {
-      if (parent.branches) return parent.branches; // Return eager-loaded data
+      if (parent.branches) return parent.branches;
       return prisma.branch.findMany({ where: { ngoId: parent.id } });
     },
     badges: (parent: NgoWithRelations) => {
-      if (parent.badges) return parent.badges; // Return eager-loaded data
+      if (parent.badges) return parent.badges;
       return prisma.badge.findMany({ where: { ngoId: parent.id } });
     },
   },
