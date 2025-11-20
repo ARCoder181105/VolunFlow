@@ -18,21 +18,22 @@ import BadgeCard from '../badges/BadgeCard';
 import AddBranchModal, { type BranchFormData } from './AddBranchModal';
 import AddEventModal from '../events/AddEventModal';
 import AddBadgeModal from '../badges/AddBadgeModal';
-import EditNgoModal, { type EditNgoFormData } from './EditNgoModal'; // <--- Import Edit Modal
+import EditNgoModal, { type EditNgoFormData } from './EditNgoModal';
 import { isValid } from 'date-fns';
 import { ADD_BRANCH_MUTATION, DELETE_BRANCH_MUTATION } from '../../graphql/mutations/branch.mutations';
 import { CREATE_EVENT_MUTATION } from '../../graphql/mutations/event.mutations';
 import { CREATE_BADGE_TEMPLATE_MUTATION } from '../../graphql/mutations/badge.mutations';
-import { UPDATE_NGO_MUTATION } from '../../graphql/mutations/ngo.mutations'; // <--- Import Update Mutation
+import { UPDATE_NGO_MUTATION } from '../../graphql/mutations/ngo.mutations';
 import { MY_NGO_QUERY } from '../../graphql/queries/ngo.queries';
 
 interface NgoProfileProps {
   ngo: NGO;
   isAdmin?: boolean;
-  onEdit?: () => void; // This is now optional/unused since we handle it internally
+  onEdit?: () => void;
   userSignups?: string[];
   onEventSignUp?: (eventId: string) => void;
   onEventCancel?: (eventId: string) => void;
+  earnedBadgeIds?: string[]; // <--- New Prop
 }
 
 const NgoProfile: React.FC<NgoProfileProps> = ({
@@ -40,7 +41,8 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
   isAdmin = false,
   userSignups = [],
   onEventSignUp,
-  onEventCancel
+  onEventCancel,
+  earnedBadgeIds = [] // Default to empty array
 }) => {
   const [activeTab, setActiveTab] = useState<'events' | 'badges' | 'branches'>('events');
   
@@ -48,7 +50,7 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
   const [isAddBranchModalOpen, setIsAddBranchModalOpen] = useState(false);
   const [isAddEventModalOpen, setIsAddEventModalOpen] = useState(false);
   const [isAddBadgeModalOpen, setIsAddBadgeModalOpen] = useState(false);
-  const [isEditNgoModalOpen, setIsEditNgoModalOpen] = useState(false); // <--- New State
+  const [isEditNgoModalOpen, setIsEditNgoModalOpen] = useState(false);
 
   // --- Mutations ---
   const [addBranch, { loading: isAddingBranch }] = useMutation(ADD_BRANCH_MUTATION, {
@@ -74,7 +76,6 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
     onError: (err) => alert(err.message),
   });
 
-  // New Mutation for updating NGO Profile
   const [updateNgo, { loading: isUpdatingNgo }] = useMutation(UPDATE_NGO_MUTATION, {
     refetchQueries: [MY_NGO_QUERY],
     onCompleted: () => setIsEditNgoModalOpen(false),
@@ -143,7 +144,7 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
                 <h1 className="text-3xl font-bold text-gray-900 truncate">{ngo.name}</h1>
                 {isAdmin && (
                   <button
-                    onClick={() => setIsEditNgoModalOpen(true)} // Trigger Edit Modal
+                    onClick={() => setIsEditNgoModalOpen(true)}
                     className="flex items-center text-blue-600 hover:text-blue-700 transition-colors text-sm font-medium px-2 py-1 rounded-md hover:bg-blue-50"
                   >
                     <Edit3 className="w-4 h-4 mr-1" />
@@ -330,13 +331,19 @@ const NgoProfile: React.FC<NgoProfileProps> = ({
             
             {ngo.badges && ngo.badges.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {ngo.badges.map((badge) => (
-                  <BadgeCard
-                    key={badge.id}
-                    badge={badge}
-                    isAdmin={isAdmin} // Pass isAdmin to show template view
-                  />
-                ))}
+                {ngo.badges.map((badge) => {
+                  // *** CHECK IF EARNED ***
+                  const isEarned = earnedBadgeIds.includes(badge.id);
+                  return (
+                    <BadgeCard
+                      key={badge.id}
+                      badge={badge}
+                      isAdmin={isAdmin}
+                      earned={isEarned} // Pass true/false based on user profile
+                      earnedDate={isEarned ? new Date().toISOString() : undefined} // Optional: You could pass actual date if you mapped it
+                    />
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">

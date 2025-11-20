@@ -2,22 +2,31 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
 import { GET_NGO_BY_SLUG_QUERY } from '../graphql/queries/ngo.queries';
+import { MY_PROFILE_QUERY } from '../graphql/queries/user.queries'; // Import this
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import NgoProfile from '../components/ngo/NgoProfile';
 import { Building } from 'lucide-react';
 import type { NgoBySlugData } from '../types/ngo.types';
-import { useAuth } from '../hooks/useAuth'; // 1. Import useAuth
+import type { MyProfileData } from '../types/user.types'; // Import this
+import { useAuth } from '../hooks/useAuth';
 
 const NgoDetailsPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { user } = useAuth(); // 2. Get current user
+  const { user } = useAuth();
 
-  const { data, loading, error, refetch } = useQuery<NgoBySlugData>(GET_NGO_BY_SLUG_QUERY, {
+  // 1. Fetch NGO Details
+  const { data: ngoData, loading: ngoLoading, error: ngoError, refetch: refetchNgo } = useQuery<NgoBySlugData>(GET_NGO_BY_SLUG_QUERY, {
     variables: { slug: slug! },
     skip: !slug,
   });
 
-  if (loading) {
+  // 2. Fetch Current User's Profile (to get earned badges)
+  // We use skip: !user so it doesn't run if not logged in
+  const { data: profileData, loading: profileLoading } = useQuery<MyProfileData>(MY_PROFILE_QUERY, {
+    skip: !user,
+  });
+
+  if (ngoLoading || (user && profileLoading)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <LoadingSpinner text="Loading NGO details..." />
@@ -25,7 +34,7 @@ const NgoDetailsPage: React.FC = () => {
     );
   }
 
-  if (error || !data?.getNgoBySlug) {
+  if (ngoError || !ngoData?.getNgoBySlug) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md">
@@ -39,7 +48,7 @@ const NgoDetailsPage: React.FC = () => {
             We couldn’t find the NGO you’re looking for. It may have been removed or doesn’t exist.
           </p>
           <button
-            onClick={() => refetch()}
+            onClick={() => refetchNgo()}
             className="btn-primary"
           >
             Try Again
@@ -49,21 +58,23 @@ const NgoDetailsPage: React.FC = () => {
     );
   }
 
-  const ngo = data.getNgoBySlug;
+  const ngo = ngoData.getNgoBySlug;
 
-  // 3. Check if the current user is the admin of THIS specific NGO
-  const isOwner = 
-    user?.role === 'NGO_ADMIN' && 
-    user?.adminOfNgoId === ngo.id;
+  // 3. Extract the list of badge IDs the user has earned
+  // We map the 'earnedBadges' array to just get the IDs of the badges
+  const earnedBadgeIds = profileData?.myProfile?.earnedBadges?.map(
+    (eb) => eb.badge.id
+  ) || [];
+
+  const isOwner = user?.role === 'NGO_ADMIN' && user?.adminOfNgoId === ngo.id;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="container mx-auto">
-        {/* 4. Pass the calculated permission to the profile component */}
         <NgoProfile 
           ngo={ngo} 
           isAdmin={isOwner} 
-          onEdit={() => console.log("Edit clicked")} // You can wire up edit functionality here later
+          earnedBadgeIds={earnedBadgeIds} // <--- Pass the earned IDs here
         />
       </div>
     </div>
