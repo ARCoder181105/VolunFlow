@@ -1,4 +1,4 @@
-# 🌟 VolunFlow
+<img width="1897" height="979" alt="image" src="https://github.com/user-attachments/assets/70e3ea5d-2306-48fd-bd94-01315e745d9f" /># 🌟 VolunFlow
 
 > **Connecting Hearts, Building Communities**  
 > A modern platform bridging volunteers and NGOs to create meaningful social impact.
@@ -507,16 +507,20 @@ mutation AwardBadge($userId: ID!, $badgeId: ID!) {
 ## 🎨 Screenshots
 
 ### Landing Page
-![Landing Page](https://via.placeholder.com/800x400/2563eb/ffffff?text=Landing+Page)
+![Landing Page](<img width="1901" height="988" alt="image" src="https://github.com/user-attachments/assets/6ee3fc98-d524-4a87-ab02-98b9350a1452" />
+)
 
 ### Event Discovery
-![Events Page](https://via.placeholder.com/800x400/7c3aed/ffffff?text=Event+Discovery)
+![Events Page](<img width="1898" height="990" alt="image" src="https://github.com/user-attachments/assets/d92f4a69-f3df-41b2-bd5c-4575364000fa" />
+)
 
 ### Volunteer Dashboard
-![Dashboard](https://via.placeholder.com/800x400/059669/ffffff?text=Volunteer+Dashboard)
+![Dashboard](<img width="1899" height="989" alt="image" src="https://github.com/user-attachments/assets/78959ce2-0ffb-4528-87f1-b3cce92b5260" />
+)
 
 ### NGO Admin Panel
-![Admin Panel](https://via.placeholder.com/800x400/dc2626/ffffff?text=NGO+Admin+Panel)
+![Admin Panel](<img width="1897" height="979" alt="image" src="https://github.com/user-attachments/assets/010ee91f-d692-4957-915d-ecd009e79819" />
+)
 
 ---
 
