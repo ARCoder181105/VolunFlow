@@ -14,6 +14,7 @@ import { badgeResolvers } from "../graphql/resolvers/badge.resolvers.js";
 
 import { MyContext } from "../types/context.types.js";
 import prisma from "../services/prisma.service.js"; // <-- 1. IMPORT PRISMA
+import { branchResolvers } from "../graphql/resolvers/branch.resolvers.js";
 
 // Secret from environment variables
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
@@ -24,7 +25,8 @@ export const createApolloGraphQLMiddleware = async () => {
     ngoResolvers,
     eventResolvers,
     signupResolvers,
-    badgeResolvers
+    badgeResolvers,
+    branchResolvers
   );
 
   // 1. Create the Apollo Server instance

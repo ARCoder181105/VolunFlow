@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoginForm from '../components/auth/LoginForm';
 import type { LoginFormData } from '../types/auth.types';
+import { useAuth } from '../hooks/useAuth'; // <--- IMPORT THIS
 
 const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { checkAuth } = useAuth(); // <--- DESTRUCTURE THIS
 
   const handleLogin = async (data: LoginFormData) => {
     setLoading(true);
@@ -20,6 +22,8 @@ const LoginPage: React.FC = () => {
       });
 
       if (response.ok) {
+        // <--- ADD THIS: Wait for the user state to update before redirecting
+        await checkAuth(); 
         navigate('/dashboard');
       } else {
         const errorData = await response.json();

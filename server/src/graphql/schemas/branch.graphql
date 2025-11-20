@@ -6,3 +6,14 @@ type Branch {
   longitude: Float!
 }
 
+input CreateBranchInput {
+  address: String!
+  city: String!
+  latitude: Float!
+  longitude: Float!
+}
+
+extend type Mutation {
+  addBranch(input: CreateBranchInput!): Branch!
+  deleteBranch(branchId: ID!): Boolean!
+}

@@ -1,3 +1,6 @@
+/* FIX: Import Tailwind so @apply has access to utility classes */
+@import "tailwindcss";
+
 /* Component-specific styles that extend Tailwind CSS */
 
 /* Button variants */
@@ -351,7 +354,7 @@
 /* Scrollbar styling */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: theme('colors.gray.300') theme('colors.gray.100');
+  scrollbar-color: #d1d5db #f3f4f6;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

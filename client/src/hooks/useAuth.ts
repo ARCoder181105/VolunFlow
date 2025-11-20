@@ -5,18 +5,18 @@ import React, {
   useEffect,
 } from "react";
 import type { ReactNode } from "react";
-// Import useQuery, but NOT useMutation
 import { useQuery } from "@apollo/client/react";
 import { ME_QUERY } from "../graphql/queries/user.queries";
-// DO NOT import LOGOUT_MUTATION, as it doesn't exist on the server
-// import { LOGOUT_MUTATION } from "../graphql/mutations/auth.mutations"; 
-import type { User, MeData } from "../types/user.types"; // Import MeData
+import type { User, MeData } from "../types/user.types";
+// FIX 1: Import the client instance
+import { client } from "../graphql/client"; 
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,9 +38,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const { data, loading: queryLoading, refetch } = useQuery<MeData>(ME_QUERY);
-  
-  // REMOVE the useMutation hook for logout
-  // const [logoutMutation] = useMutation(LOGOUT_MUTATION);
 
   useEffect(() => {
     if (data?.me) {
@@ -48,6 +45,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     setLoading(queryLoading);
   }, [data, queryLoading]);
+
+  const checkAuth = async () => {
+    try {
+      const result = await refetch();
+      // FIX 2: Use optional chaining (?.) to safely access data
+      if (result.data?.me) {
+        setUser(result.data.me);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Check auth failed:", error);
+      setUser(null);
+    }
+  };
 
   const refreshToken = async (): Promise<boolean> => {
     try {
@@ -60,7 +72,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       );
 
       if (response.ok) {
-        await refetch();
+        await checkAuth();
         return true;
       }
       return false;
@@ -70,10 +82,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // REWRITE the logout function to use fetch
   const logout = async () => {
     try {
-      // Call the REST endpoint instead of the GraphQL mutation
       await fetch(
         `${import.meta.env.VITE_API_URL}/auth/logout`,
         {
@@ -85,11 +95,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error("Logout fetch failed:", error);
     } finally {
       setUser(null);
-      // Clear any remaining cookies
       document.cookie =
         "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       document.cookie =
         "refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      
+      // Now 'client' is properly imported and this will work
+      await client.clearStore(); 
     }
   };
 
@@ -98,6 +110,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading: loading || queryLoading,
     logout,
     refreshToken,
+    checkAuth,
   };
 
   return React.createElement(AuthContext.Provider, { value }, children);

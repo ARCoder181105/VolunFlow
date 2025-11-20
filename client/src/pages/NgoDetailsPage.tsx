@@ -1,14 +1,16 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react'; // FIX: Corrected import path
+import { useQuery } from '@apollo/client/react';
 import { GET_NGO_BY_SLUG_QUERY } from '../graphql/queries/ngo.queries';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import NgoProfile from '../components/ngo/NgoProfile';
 import { Building } from 'lucide-react';
-import type { NgoBySlugData } from '../types/ngo.types'; // Import from types
+import type { NgoBySlugData } from '../types/ngo.types';
+import { useAuth } from '../hooks/useAuth'; // 1. Import useAuth
 
 const NgoDetailsPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth(); // 2. Get current user
 
   const { data, loading, error, refetch } = useQuery<NgoBySlugData>(GET_NGO_BY_SLUG_QUERY, {
     variables: { slug: slug! },
@@ -49,10 +51,20 @@ const NgoDetailsPage: React.FC = () => {
 
   const ngo = data.getNgoBySlug;
 
+  // 3. Check if the current user is the admin of THIS specific NGO
+  const isOwner = 
+    user?.role === 'NGO_ADMIN' && 
+    user?.adminOfNgoId === ngo.id;
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="container mx-auto">
-        <NgoProfile ngo={ngo} />
+        {/* 4. Pass the calculated permission to the profile component */}
+        <NgoProfile 
+          ngo={ngo} 
+          isAdmin={isOwner} 
+          onEdit={() => console.log("Edit clicked")} // You can wire up edit functionality here later
+        />
       </div>
     </div>
   );

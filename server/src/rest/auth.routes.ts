@@ -1,3 +1,5 @@
+// routes/auth.routes.ts
+
 import { Router, Response } from "express";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
@@ -11,205 +13,194 @@ import passport from "../config/passport.js";
 
 const router = Router();
 const CLIENT_URL = process.env.CLIENT_URL as string;
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
 
-// --- Helper Function for setting cookies ---
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_fallback";
+const REFRESH_TOKEN_SECRET =
+  process.env.REFRESH_TOKEN_SECRET || "refresh_fallback";
+
+// ---------------------------
+// Cookie Setter
+// ---------------------------
 const setAuthCookies = (
   res: Response,
   accessToken: string,
   refreshToken: string
 ) => {
-  // FIX: Use || to fall back to the default if Number() results in NaN
-  const accessTokenMaxAge = Number(process.env.ACCESS_TOKEN_EXPIRY) || 86400000; // 1 day
-  const refreshTokenMaxAge = Number(process.env.REFRESH_TOKEN_EXPIRY) || 604800000; // 7 days
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const SEVEN_DAY_MS = 7 * 24 * 60 * 60 * 1000;
 
   const isProduction = process.env.NODE_ENV === "production";
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: accessTokenMaxAge,
+    maxAge: ONE_DAY_MS,
   });
+
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
     path: "/api/v1/auth/refresh_token",
-    maxAge: refreshTokenMaxAge,
+    maxAge: SEVEN_DAY_MS,
   });
 };
 
-// *** UPDATE: Added avatarUrl to the schema ***
+// ---------------------------
+// Validation Schemas
+// ---------------------------
 const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(8),
   avatarUrl: z.string().optional(),
 });
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email(),
+  password: z.string().min(1),
 });
 
-// --- Manual Email/Password Routes ---
-
+// ---------------------------
+// REGISTER
 // POST /api/v1/auth/register
+// ---------------------------
 router.post("/register", async (req, res) => {
   try {
-    const validatedBody = registerSchema.parse(req.body);
-    // *** UPDATE: Destructure avatarUrl from the validated body ***
-    const { email, password, name, avatarUrl } = validatedBody;
+    const data = registerSchema.parse(req.body);
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res
-        .status(409)
-        .json({ message: "User with this email already exists." });
+    const existing = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existing) {
+      return res.status(409).json({ message: "Email already in use." });
     }
 
-    const hashedPassword = await hashPassword(password);
+    const hashedPassword = await hashPassword(data.password);
 
-    // *** UPDATE: Pass avatarUrl to Prisma ***
     const user = await prisma.user.create({
-      data: { 
-        email, 
-        name, 
-        password: hashedPassword, 
+      data: {
+        email: data.email,
+        name: data.name,
+        password: hashedPassword,
         authProvider: "EMAIL",
-        avatarUrl 
+        avatarUrl: data.avatarUrl,
       },
     });
 
     const { accessToken, refreshToken } = await generateAndStoreTokens(user);
-
     setAuthCookies(res, accessToken, refreshToken);
 
-    const { password: _, refreshToken: __, ...userResponse } = user;
+    const { password: _, refreshToken: __, ...cleanUser } = user;
 
-    res.status(201).json(userResponse);
-  } catch (error) {
-    console.error(error);
-    // Improve error handling slightly to see Zod errors in console
-    if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Validation error", errors: error.message });
-    }
-    res.status(500).json({ message: "Server error during registration." });
+    return res.status(201).json(cleanUser);
+  } catch (err) {
+    if (err instanceof z.ZodError)
+      return res.status(400).json({ message: "Validation error", errors: err });
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
+// ---------------------------
+// LOGIN
 // POST /api/v1/auth/login
+// ---------------------------
 router.post("/login", async (req, res) => {
   try {
-    const validatedBody = loginSchema.parse(req.body);
-    const { email, password } = validatedBody;
+    const data = loginSchema.parse(req.body);
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
 
-    if (!user || !user.password) {
+    if (!user)
+      return res.status(401).json({ message: "Invalid credentials" });
+
+    if (!user.password)
       return res
         .status(401)
-        .json({ message: "Invalid credentials or user signed up with OAuth." });
-    }
+        .json({ message: "Login using Google/Facebook only." });
 
-    const isPasswordValid = await comparePassword(password, user.password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid credentials." });
-    }
+    const valid = await comparePassword(data.password, user.password);
+    if (!valid) return res.status(401).json({ message: "Invalid credentials" });
 
     const { accessToken, refreshToken } = await generateAndStoreTokens(user);
-
     setAuthCookies(res, accessToken, refreshToken);
 
-    const { password: _, refreshToken: __, ...userResponse } = user;
-
-    res.status(200).json(userResponse);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error during login." });
+    const { password: _, refreshToken: __, ...cleanUser } = user;
+    res.status(200).json(cleanUser);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
-// --- Token Management Routes ---
-
+// ---------------------------
+// REFRESH TOKEN
 // POST /api/v1/auth/refresh_token
+// ---------------------------
 router.post("/refresh_token", async (req, res) => {
-  const incomingRefreshToken = req.cookies.refreshToken;
-
-  if (!incomingRefreshToken) {
-    return res.status(401).json({ message: "No refresh token provided." });
-  }
+  const token = req.cookies.refreshToken;
+  if (!token)
+    return res.status(401).json({ message: "Refresh token missing." });
 
   try {
-    // Verify the token with its specific secret
-    const payload = jwt.verify(incomingRefreshToken, REFRESH_TOKEN_SECRET) as {
-      id: string;
-    };
+    const payload = jwt.verify(token, REFRESH_TOKEN_SECRET) as { id: string };
 
-    const user = await prisma.user.findUnique({ where: { id: payload.id } });
+    const user = await prisma.user.findUnique({
+      where: { id: payload.id },
+    });
 
-    if (!user || !user.refreshToken) {
-      return res
-        .status(403)
-        .json({ message: "Invalid refresh token or session revoked." });
-    }
+    if (!user || !user.refreshToken)
+      return res.status(403).json({ message: "Session expired." });
 
-    const isTokenValid = await comparePassword(
-      incomingRefreshToken,
-      user.refreshToken
-    );
-
-    if (!isTokenValid) {
-      return res.status(403).json({ message: "Invalid refresh token." });
-    }
+    // Compare hashed
+    const valid = await comparePassword(token, user.refreshToken);
+    if (!valid) return res.status(403).json({ message: "Invalid token" });
 
     const { accessToken, refreshToken } = await generateAndStoreTokens(user);
-
     setAuthCookies(res, accessToken, refreshToken);
 
-    res.status(200).json({ message: "Token refreshed successfully." });
-  } catch (error) {
-    return res
-      .status(403)
-      .json({ message: "Invalid or expired refresh token." });
+    return res.status(200).json({ message: "Token refreshed" });
+  } catch (err) {
+    return res.status(403).json({ message: "Invalid or expired token" });
   }
 });
 
+// ---------------------------
+// LOGOUT
 // POST /api/v1/auth/logout
+// ---------------------------
 router.post("/logout", async (req, res) => {
-  const incomingRefreshToken = req.cookies.refreshToken;
+  const token = req.cookies.refreshToken;
 
-  if (incomingRefreshToken) {
+  if (token) {
     try {
-      // Verify the token with its specific secret before proceeding
-      const payload = jwt.verify(
-        incomingRefreshToken,
-        REFRESH_TOKEN_SECRET
-      ) as { id: string };
+      const payload = jwt.verify(token, REFRESH_TOKEN_SECRET) as { id: string };
       await prisma.user.update({
         where: { id: payload.id },
         data: { refreshToken: null },
       });
-    } catch (error) {
-      // Ignore errors if token is invalid, just clear cookies
-    }
+    } catch {}
   }
+
   res.clearCookie("accessToken");
   res.clearCookie("refreshToken", { path: "/api/v1/auth/refresh_token" });
-  res.status(200).json({ message: "Logged out successfully." });
+
+  return res.status(200).json({ message: "Logged out" });
 });
 
-// --- OAuth Routes ---
-
-// GET /api/v1/auth/google
+// ---------------------------
+// GOOGLE OAUTH
+// ---------------------------
 router.get(
   "/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
-// GET /api/v1/auth/google/callback
 router.get(
   "/google/callback",
   passport.authenticate("google", {
@@ -218,19 +209,22 @@ router.get(
   }),
   async (req, res) => {
     const user = req.user as any;
+
     const { accessToken, refreshToken } = await generateAndStoreTokens(user);
     setAuthCookies(res, accessToken, refreshToken);
+
     res.redirect(`${CLIENT_URL}/dashboard`);
   }
 );
 
-// GET /api/v1/auth/facebook
+// ---------------------------
+// FACEBOOK OAUTH
+// ---------------------------
 router.get(
   "/facebook",
   passport.authenticate("facebook", { scope: ["email"] })
 );
 
-// GET /api/v1/auth/facebook/callback
 router.get(
   "/facebook/callback",
   passport.authenticate("facebook", {
@@ -239,8 +233,10 @@ router.get(
   }),
   async (req, res) => {
     const user = req.user as any;
+
     const { accessToken, refreshToken } = await generateAndStoreTokens(user);
     setAuthCookies(res, accessToken, refreshToken);
+
     res.redirect(`${CLIENT_URL}/dashboard`);
   }
 );
